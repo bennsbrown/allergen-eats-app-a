@@ -1,91 +1,391 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { IconSymbol } from "@/components/IconSymbol";
-import { GlassView } from "expo-glass-effect";
-import { useTheme } from "@react-navigation/native";
+
+import React, { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  Pressable,
+  TextInput,
+  Alert,
+} from 'react-native';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
+import { Stack } from 'expo-router';
 
 export default function ProfileScreen() {
-  const theme = useTheme();
+  const [restaurantName, setRestaurantName] = useState('My Restaurant');
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleSaveSettings = () => {
+    setIsEditing(false);
+    Alert.alert('Settings Saved', 'Your restaurant settings have been updated.');
+    console.log('Settings saved:', { restaurantName, googleSheetUrl });
+  };
+
+  const handleConnectSheet = () => {
+    if (!googleSheetUrl) {
+      Alert.alert('Error', 'Please enter a Google Sheet URL');
+      return;
+    }
+    Alert.alert(
+      'Connect Google Sheet',
+      'In production, this would connect to your Google Sheet and import menu data. For now, we are using sample data.',
+      [{ text: 'OK' }]
+    );
+    console.log('Connecting to Google Sheet:', googleSheetUrl);
+  };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[
-          styles.contentContainer,
-          Platform.OS !== 'ios' && styles.contentContainerWithTabBar
-        ]}
-      >
-        <GlassView style={[
-          styles.profileHeader,
-          Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-        ]} glassEffectStyle="regular">
-          <IconSymbol name="person.circle.fill" size={80} color={theme.colors.primary} />
-          <Text style={[styles.name, { color: theme.colors.text }]}>John Doe</Text>
-          <Text style={[styles.email, { color: theme.dark ? '#98989D' : '#666' }]}>john.doe@example.com</Text>
-        </GlassView>
+    <>
+      {Platform.OS === 'ios' && (
+        <Stack.Screen
+          options={{
+            title: 'Settings',
+          }}
+        />
+      )}
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <IconSymbol name="building.2.fill" color={colors.primary} size={48} />
+            <Text style={styles.headerTitle}>Restaurant Settings</Text>
+            <Text style={styles.headerSubtitle}>
+              Manage your allergen menu configuration
+            </Text>
+          </View>
 
-        <GlassView style={[
-          styles.section,
-          Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-        ]} glassEffectStyle="regular">
-          <View style={styles.infoRow}>
-            <IconSymbol name="phone.fill" size={20} color={theme.dark ? '#98989D' : '#666'} />
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>+1 (555) 123-4567</Text>
+          {/* Restaurant Info Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Restaurant Information</Text>
+              <Pressable onPress={() => setIsEditing(!isEditing)}>
+                <IconSymbol
+                  name={isEditing ? 'checkmark.circle.fill' : 'pencil.circle.fill'}
+                  color={colors.primary}
+                  size={24}
+                />
+              </Pressable>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Restaurant Name</Text>
+              <TextInput
+                style={[styles.input, !isEditing && styles.inputDisabled]}
+                value={restaurantName}
+                onChangeText={setRestaurantName}
+                editable={isEditing}
+                placeholder="Enter restaurant name"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+            {isEditing && (
+              <Pressable style={styles.saveButton} onPress={handleSaveSettings}>
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              </Pressable>
+            )}
           </View>
-          <View style={styles.infoRow}>
-            <IconSymbol name="location.fill" size={20} color={theme.dark ? '#98989D' : '#666'} />
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>San Francisco, CA</Text>
+
+          {/* Google Sheets Integration Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="doc.text.fill" color={colors.primary} size={24} />
+              <Text style={styles.cardTitle}>Google Sheets Integration</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Connect your Google Sheet to automatically import and update your menu items and allergen information.
+            </Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Google Sheet URL</Text>
+              <TextInput
+                style={styles.input}
+                value={googleSheetUrl}
+                onChangeText={setGoogleSheetUrl}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <Pressable style={styles.connectButton} onPress={handleConnectSheet}>
+              <IconSymbol name="link" color={colors.card} size={20} />
+              <Text style={styles.connectButtonText}>Connect Sheet</Text>
+            </Pressable>
           </View>
-        </GlassView>
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* Instructions Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="info.circle.fill" color={colors.accent} size={24} />
+              <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
+            </View>
+            <Text style={styles.instructionText}>
+              Your Google Sheet should have the following columns:
+            </Text>
+            <View style={styles.columnList}>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Name:</Text> Dish name
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Description:</Text> Brief description
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Category:</Text> Mains, Salads, Desserts, etc.
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Allergens:</Text> Comma-separated (nuts, gluten, dairy, etc.)
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Price:</Text> Numeric value
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Stats Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="chart.bar.fill" color={colors.primary} size={24} />
+              <Text style={styles.cardTitle}>Menu Statistics</Text>
+            </View>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statLabel}>Total Dishes</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>8</Text>
+                <Text style={styles.statLabel}>Allergen Types</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>4</Text>
+                <Text style={styles.statLabel}>Categories</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>3</Text>
+                <Text style={styles.statLabel}>Vegan Options</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* About Card */}
+          <View style={styles.aboutCard}>
+            <Text style={styles.aboutTitle}>About Allergen Menu</Text>
+            <Text style={styles.aboutText}>
+              This app helps restaurants digitalize their allergen information, making it easy for customers to find dishes that match their dietary needs.
+            </Text>
+            <Text style={styles.versionText}>Version 1.0.0</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    // backgroundColor handled dynamically
-  },
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
-  contentContainer: {
-    padding: 20,
+  scrollView: {
+    flex: 1,
   },
-  contentContainerWithTabBar: {
-    paddingBottom: 100, // Extra padding for floating tab bar
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  profileHeader: {
+  scrollContentWithTabBar: {
+    paddingBottom: 100,
+  },
+  header: {
     alignItems: 'center',
-    borderRadius: 12,
-    padding: 32,
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 24,
+    paddingVertical: 20,
   },
-  name: {
+  headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    // color handled dynamically
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 12,
   },
-  email: {
-    fontSize: 16,
-    // color handled dynamically
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
-  section: {
+  card: {
+    backgroundColor: colors.card,
     borderRadius: 12,
-    padding: 20,
-    gap: 12,
+    padding: 16,
+    marginBottom: 16,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    elevation: 3,
   },
-  infoRow: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+  },
+  inputDisabled: {
+    opacity: 0.6,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  connectButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  connectButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  columnList: {
+    gap: 8,
+  },
+  columnItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  columnBullet: {
+    fontSize: 16,
+    color: colors.primary,
+    marginRight: 8,
+    marginTop: 2,
+  },
+  columnText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  columnBold: {
+    fontWeight: '700',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  infoText: {
-    fontSize: 16,
-    // color handled dynamically
+  statItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  aboutCard: {
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  aboutTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
+    marginBottom: 8,
+  },
+  aboutText: {
+    fontSize: 14,
+    color: colors.card,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  versionText: {
+    fontSize: 12,
+    color: colors.card,
+    opacity: 0.8,
   },
 });

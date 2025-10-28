@@ -1,78 +1,49 @@
-import React from "react";
-import { Stack, Link } from "expo-router";
-import { FlatList, Pressable, StyleSheet, View, Text, Alert, Platform } from "react-native";
-import { IconSymbol } from "@/components/IconSymbol";
-import { GlassView } from "expo-glass-effect";
-import { useTheme } from "@react-navigation/native";
 
-const ICON_COLOR = "#007AFF";
+import React, { useState } from 'react';
+import { Stack } from 'expo-router';
+import {
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  View,
+  Text,
+  Platform,
+  TextInput,
+} from 'react-native';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
+import { ALLERGEN_FILTERS } from '@/types/allergen';
+import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function HomeScreen() {
-  const theme = useTheme();
-  const modalDemos = [
-    {
-      title: "Standard Modal",
-      description: "Full screen modal presentation",
-      route: "/modal",
-      color: "#007AFF",
-    },
-    {
-      title: "Form Sheet",
-      description: "Bottom sheet with detents and grabber",
-      route: "/formsheet",
-      color: "#34C759",
-    },
-    {
-      title: "Transparent Modal",
-      description: "Overlay without obscuring background",
-      route: "/transparent-modal",
-      color: "#FF9500",
-    }
-  ];
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { menuItems, loading } = useMenuData();
+  const filteredItems = useFilteredMenu(menuItems, selectedFilters);
 
-  const renderModalDemo = ({ item }: { item: (typeof modalDemos)[0] }) => (
-    <GlassView style={[
-      styles.demoCard,
-      Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-    ]} glassEffectStyle="regular">
-      <View style={[styles.demoIcon, { backgroundColor: item.color }]}>
-        <IconSymbol name="square.grid.3x3" color="white" size={24} />
-      </View>
-      <View style={styles.demoContent}>
-        <Text style={[styles.demoTitle, { color: theme.colors.text }]}>{item.title}</Text>
-        <Text style={[styles.demoDescription, { color: theme.dark ? '#98989D' : '#666' }]}>{item.description}</Text>
-      </View>
-      <Link href={item.route as any} asChild>
-        <Pressable>
-          <GlassView style={[
-            styles.tryButton,
-            Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }
-          ]} glassEffectStyle="clear">
-            <Text style={[styles.tryButtonText, { color: theme.colors.primary }]}>Try It</Text>
-          </GlassView>
-        </Pressable>
-      </Link>
-    </GlassView>
+  const toggleFilter = (filterId: string) => {
+    setSelectedFilters(prev => {
+      if (prev.includes(filterId)) {
+        return prev.filter(id => id !== filterId);
+      }
+      return [...prev, filterId];
+    });
+  };
+
+  const searchFilteredItems = filteredItems.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderHeaderRight = () => (
     <Pressable
-      onPress={() => Alert.alert("Not Implemented", "This feature is not implemented yet")}
+      onPress={() => {
+        console.log('Info button pressed');
+      }}
       style={styles.headerButtonContainer}
     >
-      <IconSymbol name="plus" color={theme.colors.primary} />
-    </Pressable>
-  );
-
-  const renderHeaderLeft = () => (
-    <Pressable
-      onPress={() => Alert.alert("Not Implemented", "This feature is not implemented yet")}
-      style={styles.headerButtonContainer}
-    >
-      <IconSymbol
-        name="gear"
-        color={theme.colors.primary}
-      />
+      <IconSymbol name="info.circle" color={colors.primary} />
     </Pressable>
   );
 
@@ -81,24 +52,167 @@ export default function HomeScreen() {
       {Platform.OS === 'ios' && (
         <Stack.Screen
           options={{
-            title: "Building the app...",
+            title: 'Allergen Menu',
             headerRight: renderHeaderRight,
-            headerLeft: renderHeaderLeft,
           }}
         />
       )}
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <FlatList
-          data={modalDemos}
-          renderItem={renderModalDemo}
-          keyExtractor={(item) => item.route}
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={[
-            styles.listContainer,
-            Platform.OS !== 'ios' && styles.listContainerWithTabBar
+            styles.scrollContent,
+            Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
           ]}
-          contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
-        />
+        >
+          {/* Welcome Section */}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeTitle}>Welcome! 🌿</Text>
+            <Text style={styles.welcomeText}>
+              Find dishes that match your dietary needs. Select your allergen preferences below.
+            </Text>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search dishes..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          {/* Allergen Filter Chips */}
+          <View style={styles.filtersSection}>
+            <Text style={styles.sectionTitle}>Filter by Dietary Needs</Text>
+            <View style={styles.filterChipsContainer}>
+              {ALLERGEN_FILTERS.map((filter, index) => {
+                const isSelected = selectedFilters.includes(filter.id);
+                return (
+                  <Animated.View
+                    key={filter.id}
+                    entering={FadeInDown.delay(index * 50)}
+                  >
+                    <Pressable
+                      style={[
+                        styles.filterChip,
+                        isSelected && styles.filterChipSelected,
+                      ]}
+                      onPress={() => toggleFilter(filter.id)}
+                    >
+                      <IconSymbol
+                        name={filter.icon as any}
+                        color={isSelected ? colors.card : colors.primary}
+                        size={18}
+                      />
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          isSelected && styles.filterChipTextSelected,
+                        ]}
+                      >
+                        {filter.name}
+                      </Text>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Active Filters Display */}
+          {selectedFilters.length > 0 && (
+            <View style={styles.activeFiltersSection}>
+              <Text style={styles.activeFiltersText}>
+                Showing {searchFilteredItems.length} dishes free from:{' '}
+                {selectedFilters
+                  .map(id => ALLERGEN_FILTERS.find(f => f.id === id)?.name)
+                  .join(', ')}
+              </Text>
+              <Pressable onPress={() => setSelectedFilters([])}>
+                <Text style={styles.clearFiltersText}>Clear All</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Menu Items */}
+          <View style={styles.menuSection}>
+            <Text style={styles.sectionTitle}>
+              {selectedFilters.length > 0 ? 'Safe for You' : 'All Dishes'}
+            </Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading menu...</Text>
+              </View>
+            ) : searchFilteredItems.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
+                <Text style={styles.emptyText}>
+                  {searchQuery
+                    ? 'No dishes match your search'
+                    : 'No dishes match your dietary requirements'}
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  Try adjusting your filters or search
+                </Text>
+              </View>
+            ) : (
+              searchFilteredItems.map((item, index) => (
+                <Animated.View
+                  key={item.id}
+                  entering={FadeInDown.delay(index * 50)}
+                >
+                  <View style={styles.menuCard}>
+                    <View style={styles.menuCardContent}>
+                      <Text style={styles.menuItemName}>{item.name}</Text>
+                      <Text style={styles.menuItemDescription}>
+                        {item.description}
+                      </Text>
+                      <View style={styles.menuItemFooter}>
+                        <Text style={styles.menuItemCategory}>{item.category}</Text>
+                        {item.price && (
+                          <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
+                        )}
+                      </View>
+                      {item.allergens.length > 0 && (
+                        <View style={styles.allergenBadgesContainer}>
+                          {item.allergens.map(allergen => (
+                            <View key={allergen} style={styles.allergenBadge}>
+                              <Text style={styles.allergenBadgeText}>
+                                {ALLERGEN_FILTERS.find(f => f.id === allergen)?.name || allergen}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </Animated.View>
+              ))
+            )}
+          </View>
+
+          {/* Info Section */}
+          <View style={styles.infoSection}>
+            <Text style={styles.infoTitle}>How to Use</Text>
+            <Text style={styles.infoText}>
+              1. Select your dietary restrictions using the filter chips above
+            </Text>
+            <Text style={styles.infoText}>
+              2. Browse dishes that are safe for you
+            </Text>
+            <Text style={styles.infoText}>
+              3. Each dish shows which allergens it contains
+            </Text>
+            <Text style={styles.infoText}>
+              4. Use the search bar to find specific dishes
+            </Text>
+          </View>
+        </ScrollView>
       </View>
     </>
   );
@@ -107,55 +221,212 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor handled dynamically
+    backgroundColor: colors.background,
   },
-  listContainer: {
-    paddingVertical: 16,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  listContainerWithTabBar: {
-    paddingBottom: 100, // Extra padding for floating tab bar
+  scrollContentWithTabBar: {
+    paddingBottom: 100,
   },
-  demoCard: {
+  welcomeSection: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.card,
+    marginBottom: 8,
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: colors.card,
+    lineHeight: 22,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 20,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filtersSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  filterChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 6,
+    borderWidth: 2,
+    borderColor: colors.secondary,
+  },
+  filterChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterChipTextSelected: {
+    color: colors.card,
+  },
+  activeFiltersSection: {
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activeFiltersText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  menuSection: {
+    marginBottom: 20,
+  },
+  menuCard: {
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    elevation: 3,
+  },
+  menuCardContent: {
+    gap: 8,
+  },
+  menuItemName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  menuItemDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  menuItemFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  menuItemCategory: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  menuItemPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  allergenBadgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  allergenBadge: {
+    backgroundColor: colors.highlight,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  allergenBadgeText: {
+    fontSize: 11,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 40,
     alignItems: 'center',
   },
-  demoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  emptyContainer: {
+    padding: 40,
     alignItems: 'center',
-    marginRight: 16,
   },
-  demoContent: {
-    flex: 1,
-  },
-  demoTitle: {
+  emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
-    // color handled dynamically
+    color: colors.text,
+    marginTop: 16,
+    textAlign: 'center',
   },
-  demoDescription: {
+  emptySubtext: {
     fontSize: 14,
-    lineHeight: 18,
-    // color handled dynamically
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  infoSection: {
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.card,
+    lineHeight: 22,
+    marginBottom: 8,
   },
   headerButtonContainer: {
     padding: 6,
-  },
-  tryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  tryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    // color handled dynamically
   },
 });
