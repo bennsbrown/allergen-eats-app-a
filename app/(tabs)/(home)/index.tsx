@@ -32,8 +32,7 @@ export default function HomeScreen() {
   };
 
   const searchFilteredItems = filteredItems.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderHeaderRight = () => (
@@ -168,15 +167,9 @@ export default function HomeScreen() {
                 >
                   <View style={styles.menuCard}>
                     <View style={styles.menuCardContent}>
-                      <Text style={styles.menuItemName}>{item.name}</Text>
-                      <Text style={styles.menuItemDescription}>
-                        {item.description}
-                      </Text>
-                      <View style={styles.menuItemFooter}>
+                      <View style={styles.menuItemHeader}>
+                        <Text style={styles.menuItemName}>{item.name}</Text>
                         <Text style={styles.menuItemCategory}>{item.category}</Text>
-                        {item.price && (
-                          <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
-                        )}
                       </View>
                       {item.allergens.length > 0 && (
                         <View style={styles.allergenBadgesContainer}>
@@ -337,40 +330,30 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   menuCardContent: {
-    gap: 8,
+    gap: 12,
+  },
+  menuItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   menuItemName: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-  },
-  menuItemDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  menuItemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
+    flex: 1,
   },
   menuItemCategory: {
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
     textTransform: 'uppercase',
-  },
-  menuItemPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
+    marginLeft: 12,
   },
   allergenBadgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 8,
   },
   allergenBadge: {
     backgroundColor: colors.highlight,
