@@ -59,7 +59,9 @@ export default function ProfileScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <IconSymbol name="building.2.fill" color={colors.primary} size={48} />
+            <View style={styles.iconCircle}>
+              <IconSymbol name="building.2.fill" color={colors.text} size={48} />
+            </View>
             <Text style={styles.headerTitle}>Restaurant Settings</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
@@ -99,7 +101,7 @@ export default function ProfileScreen() {
           {/* Google Sheets Integration Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="doc.text.fill" color={colors.primary} size={24} />
+              <IconSymbol name="doc.text.fill" color={colors.secondary} size={24} />
               <Text style={styles.cardTitle}>Google Sheets Integration</Text>
             </View>
             <Text style={styles.cardDescription}>
@@ -118,15 +120,15 @@ export default function ProfileScreen() {
               />
             </View>
             <Pressable style={styles.connectButton} onPress={handleConnectSheet}>
-              <IconSymbol name="link" color={colors.card} size={20} />
+              <IconSymbol name="link" color={colors.text} size={20} />
               <Text style={styles.connectButtonText}>Connect Sheet</Text>
             </Pressable>
           </View>
 
           {/* Instructions Card */}
-          <View style={styles.card}>
+          <View style={styles.instructionsCard}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="info.circle.fill" color={colors.accent} size={24} />
+              <IconSymbol name="info.circle.fill" color={colors.text} size={24} />
               <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
             </View>
             <Text style={styles.instructionText}>
@@ -227,23 +229,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 20,
   },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
+    elevation: 4,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: colors.text,
     marginTop: 12,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: 6,
+    fontWeight: '500',
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(164, 214, 94, 0.15)',
     elevation: 3,
   },
   cardHeader: {
@@ -254,7 +270,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.text,
     flex: 1,
   },
@@ -263,59 +279,73 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
+    fontWeight: '500',
   },
   inputGroup: {
     marginBottom: 12,
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
   input: {
     backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
     color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.secondary,
+    borderWidth: 2,
+    borderColor: colors.accent,
   },
   inputDisabled: {
     opacity: 0.6,
   },
   saveButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
     marginTop: 8,
+    boxShadow: '0px 2px 6px rgba(164, 214, 94, 0.3)',
+    elevation: 2,
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: colors.card,
+    fontWeight: '800',
+    color: colors.text,
   },
   connectButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
+    boxShadow: '0px 2px 6px rgba(255, 217, 61, 0.3)',
+    elevation: 2,
   },
   connectButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: colors.card,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  instructionsCard: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(164, 214, 94, 0.3)',
+    elevation: 4,
   },
   instructionText: {
     fontSize: 14,
     color: colors.text,
     marginBottom: 12,
+    fontWeight: '600',
   },
   columnList: {
     gap: 8,
@@ -326,18 +356,20 @@ const styles = StyleSheet.create({
   },
   columnBullet: {
     fontSize: 16,
-    color: colors.primary,
+    color: colors.text,
     marginRight: 8,
     marginTop: 2,
+    fontWeight: '800',
   },
   columnText: {
     flex: 1,
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+    fontWeight: '500',
   },
   columnBold: {
-    fontWeight: '700',
+    fontWeight: '800',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -347,14 +379,16 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: colors.background,
-    borderRadius: 8,
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
   },
   statValue: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     color: colors.primary,
   },
   statLabel: {
@@ -362,30 +396,35 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
+    fontWeight: '700',
   },
   aboutCard: {
     backgroundColor: colors.secondary,
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     marginBottom: 16,
     alignItems: 'center',
+    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
+    elevation: 4,
   },
   aboutTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.card,
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
     marginBottom: 8,
   },
   aboutText: {
     fontSize: 14,
-    color: colors.card,
+    color: colors.text,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
+    fontWeight: '500',
   },
   versionText: {
     fontSize: 12,
-    color: colors.card,
-    opacity: 0.8,
+    color: colors.text,
+    opacity: 0.7,
+    fontWeight: '600',
   },
 });

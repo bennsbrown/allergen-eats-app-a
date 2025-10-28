@@ -153,9 +153,9 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    boxShadow: '0px 4px 16px rgba(255, 217, 61, 0.3)',
     elevation: 8,
   },
   tabsContainer: {

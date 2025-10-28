@@ -105,7 +105,7 @@ export default function HomeScreen() {
                     >
                       <IconSymbol
                         name={filter.icon as any}
-                        color={isSelected ? colors.card : colors.primary}
+                        color={isSelected ? colors.text : colors.primary}
                         size={18}
                       />
                       <Text
@@ -169,7 +169,9 @@ export default function HomeScreen() {
                     <View style={styles.menuCardContent}>
                       <View style={styles.menuItemHeader}>
                         <Text style={styles.menuItemName}>{item.name}</Text>
-                        <Text style={styles.menuItemCategory}>{item.category}</Text>
+                        <View style={styles.categoryBadge}>
+                          <Text style={styles.menuItemCategory}>{item.category}</Text>
+                        </View>
                       </View>
                       {item.allergens.length > 0 && (
                         <View style={styles.allergenBadgesContainer}>
@@ -192,18 +194,32 @@ export default function HomeScreen() {
           {/* Info Section */}
           <View style={styles.infoSection}>
             <Text style={styles.infoTitle}>How to Use</Text>
-            <Text style={styles.infoText}>
-              1. Select your dietary restrictions using the filter chips above
-            </Text>
-            <Text style={styles.infoText}>
-              2. Browse dishes that are safe for you
-            </Text>
-            <Text style={styles.infoText}>
-              3. Each dish shows which allergens it contains
-            </Text>
-            <Text style={styles.infoText}>
-              4. Use the search bar to find specific dishes
-            </Text>
+            <View style={styles.infoList}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>1.</Text>
+                <Text style={styles.infoText}>
+                  Select your dietary restrictions using the filter chips above
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>2.</Text>
+                <Text style={styles.infoText}>
+                  Browse dishes that are safe for you
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>3.</Text>
+                <Text style={styles.infoText}>
+                  Each dish shows which allergens it contains
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>4.</Text>
+                <Text style={styles.infoText}>
+                  Use the search bar to find specific dishes
+                </Text>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -229,30 +245,35 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 20,
+    boxShadow: '0px 4px 12px rgba(164, 214, 94, 0.3)',
+    elevation: 4,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.card,
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.text,
     marginBottom: 8,
   },
   welcomeText: {
     fontSize: 16,
-    color: colors.card,
-    lineHeight: 22,
+    color: colors.text,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     marginBottom: 20,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 2px 8px rgba(255, 217, 61, 0.2)',
     elevation: 2,
   },
   searchInput: {
@@ -265,68 +286,76 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: colors.text,
     marginBottom: 12,
   },
   filterChipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 6,
     borderWidth: 2,
-    borderColor: colors.secondary,
+    borderColor: colors.accent,
+    boxShadow: '0px 2px 4px rgba(164, 214, 94, 0.15)',
+    elevation: 2,
   },
   filterChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
+    boxShadow: '0px 4px 8px rgba(255, 217, 61, 0.3)',
+    elevation: 4,
   },
   filterChipText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   filterChipTextSelected: {
-    color: colors.card,
+    color: colors.text,
   },
   activeFiltersSection: {
     backgroundColor: colors.highlight,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
   },
   activeFiltersText: {
     flex: 1,
     fontSize: 14,
     color: colors.text,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   clearFiltersText: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   menuSection: {
     marginBottom: 20,
   },
   menuCard: {
     backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(164, 214, 94, 0.15)',
     elevation: 3,
   },
   menuCardContent: {
@@ -336,35 +365,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
   menuItemName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: colors.text,
     flex: 1,
   },
+  categoryBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   menuItemCategory: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 11,
+    color: colors.text,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    marginLeft: 12,
+    letterSpacing: 0.5,
   },
   allergenBadgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   allergenBadge: {
     backgroundColor: colors.highlight,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   allergenBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.text,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   loadingContainer: {
     padding: 40,
@@ -373,6 +411,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
   emptyContainer: {
     padding: 40,
@@ -380,7 +419,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
@@ -390,24 +429,42 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
+    fontWeight: '500',
   },
   infoSection: {
     backgroundColor: colors.secondary,
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 20,
+    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
+    elevation: 4,
   },
   infoTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  infoList: {
+    gap: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  infoBullet: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+    marginRight: 12,
+    width: 24,
   },
   infoText: {
-    fontSize: 14,
-    color: colors.card,
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
     lineHeight: 22,
-    marginBottom: 8,
+    fontWeight: '500',
   },
   headerButtonContainer: {
     padding: 6,
