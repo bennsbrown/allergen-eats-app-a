@@ -123,7 +123,7 @@ export default function ProfileScreen() {
               />
             </View>
             <Pressable style={styles.connectButton} onPress={handleConnectSheet}>
-              <IconSymbol name="link" color={colors.text} size={20} />
+              <IconSymbol name="link" color={colors.card} size={20} />
               <Text style={styles.connectButtonText}>Connect Sheet</Text>
             </Pressable>
           </View>
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
           {/* Instructions Card */}
           <View style={styles.instructionsCard}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="info.circle.fill" color={colors.text} size={24} />
+              <IconSymbol name="info.circle.fill" color={colors.card} size={24} />
               <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
             </View>
             <Text style={styles.instructionText}>
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 16px rgba(164, 214, 94, 0.3)',
+    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
     elevation: 6,
   },
   headerTitle: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(164, 214, 94, 0.15)',
+    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
     elevation: 3,
   },
   cardHeader: {
@@ -308,13 +308,13 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(164, 214, 94, 0.3)',
+    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
     elevation: 2,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
   },
   connectButton: {
     backgroundColor: colors.secondary,
@@ -325,25 +325,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(255, 217, 61, 0.3)',
+    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
     elevation: 2,
   },
   connectButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
   },
   instructionsCard: {
     backgroundColor: colors.primary,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(164, 214, 94, 0.3)',
+    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
     elevation: 4,
   },
   instructionText: {
     fontSize: 14,
-    color: colors.text,
+    color: colors.card,
     marginBottom: 12,
     fontWeight: '600',
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   columnBullet: {
     fontSize: 16,
-    color: colors.text,
+    color: colors.card,
     marginRight: 8,
     marginTop: 2,
     fontWeight: '800',
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   columnText: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
+    color: colors.card,
     lineHeight: 20,
     fontWeight: '500',
   },
@@ -404,18 +404,18 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
+    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
     elevation: 4,
   },
   aboutTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
     marginBottom: 8,
   },
   aboutText: {
     fontSize: 14,
-    color: colors.text,
+    color: colors.card,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: colors.text,
+    color: colors.card,
     opacity: 0.7,
     fontWeight: '600',
   },

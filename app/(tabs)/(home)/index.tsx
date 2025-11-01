@@ -77,7 +77,7 @@ export default function HomeScreen() {
 
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome! 🌿</Text>
+            <Text style={styles.welcomeTitle}>Welcome! ❤️</Text>
             <Text style={styles.welcomeText}>
               Find dishes that match your dietary needs. Select your allergen preferences below.
             </Text>
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 20,
-    boxShadow: '0px 4px 16px rgba(164, 214, 94, 0.3)',
+    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
     elevation: 6,
   },
   welcomeSection: {
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(164, 214, 94, 0.3)',
+    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
     elevation: 4,
   },
   welcomeTitle: {
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(255, 217, 61, 0.2)',
+    boxShadow: '0px 2px 8px rgba(190, 22, 34, 0.2)',
     elevation: 2,
   },
   searchInput: {
@@ -328,13 +328,13 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 4px rgba(164, 214, 94, 0.15)',
+    boxShadow: '0px 2px 4px rgba(255, 107, 107, 0.15)',
     elevation: 2,
   },
   filterChipSelected: {
     backgroundColor: colors.secondary,
     borderColor: colors.secondary,
-    boxShadow: '0px 4px 8px rgba(255, 217, 61, 0.3)',
+    boxShadow: '0px 4px 8px rgba(190, 22, 34, 0.3)',
     elevation: 4,
   },
   filterChipText: {
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filterChipTextSelected: {
-    color: colors.text,
+    color: colors.card,
   },
   activeFiltersSection: {
     backgroundColor: colors.highlight,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(164, 214, 94, 0.15)',
+    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
     elevation: 3,
   },
   menuCardContent: {
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
   menuItemCategory: {
     fontSize: 11,
-    color: colors.text,
+    color: colors.card,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -458,13 +458,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
+    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
     elevation: 4,
   },
   infoTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
     marginBottom: 16,
   },
   infoList: {
@@ -477,14 +477,14 @@ const styles = StyleSheet.create({
   infoBullet: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
     marginRight: 12,
     width: 24,
   },
   infoText: {
     flex: 1,
     fontSize: 15,
-    color: colors.text,
+    color: colors.card,
     lineHeight: 22,
     fontWeight: '500',
   },

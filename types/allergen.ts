@@ -20,7 +20,7 @@ export const ALLERGEN_FILTERS: AllergenFilter[] = [
   {
     id: 'nuts',
     name: 'No Nuts',
-    icon: 'leaf.fill',
+    icon: 'xmark.circle.fill',
     description: 'Free from all tree nuts and peanuts',
   },
   {
@@ -44,7 +44,7 @@ export const ALLERGEN_FILTERS: AllergenFilter[] = [
   {
     id: 'soy',
     name: 'Soy-Free',
-    icon: 'leaf',
+    icon: 'square.fill',
     description: 'Free from soy and soy products',
   },
   {

@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.secondary,
-    boxShadow: '0px 4px 16px rgba(255, 217, 61, 0.3)',
+    boxShadow: '0px 4px 16px rgba(190, 22, 34, 0.3)',
     elevation: 8,
   },
   tabsContainer: {
