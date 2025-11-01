@@ -38,22 +38,53 @@ export function useFilteredMenu(menuItems: MenuItem[], selectedFilters: string[]
     return menuItems.filter(item => {
       // Check if item is free from all selected allergens
       return selectedFilters.every(filter => {
-        // Special cases for vegan and vegetarian
+        // Special cases for dietary preferences
         if (filter === 'vegan') {
-          return !item.allergens.includes('dairy') && 
+          // Vegan: no animal products (milk, eggs, fish, crustaceans, molluscs)
+          return !item.allergens.includes('milk') && 
                  !item.allergens.includes('eggs') &&
-                 item.category !== 'Mains' || 
-                 item.name.toLowerCase().includes('vegan') ||
-                 item.name.toLowerCase().includes('buddha');
-        }
-        if (filter === 'vegetarian') {
-          return item.category !== 'Mains' || 
+                 !item.allergens.includes('fish') &&
+                 !item.allergens.includes('crustaceans') &&
+                 !item.allergens.includes('molluscs') &&
                  !item.name.toLowerCase().includes('beef') &&
                  !item.name.toLowerCase().includes('chicken') &&
                  !item.name.toLowerCase().includes('salmon') &&
-                 !item.name.toLowerCase().includes('shrimp');
+                 !item.name.toLowerCase().includes('shrimp') &&
+                 !item.name.toLowerCase().includes('oyster');
         }
-        // Check if item doesn't contain the allergen
+        
+        if (filter === 'vegetarian') {
+          // Vegetarian: no meat or fish, but dairy and eggs are okay
+          return !item.allergens.includes('fish') &&
+                 !item.allergens.includes('crustaceans') &&
+                 !item.allergens.includes('molluscs') &&
+                 !item.name.toLowerCase().includes('beef') &&
+                 !item.name.toLowerCase().includes('chicken') &&
+                 !item.name.toLowerCase().includes('salmon') &&
+                 !item.name.toLowerCase().includes('shrimp') &&
+                 !item.name.toLowerCase().includes('oyster');
+        }
+        
+        if (filter === 'halal') {
+          // Halal: no pork, alcohol, or non-halal meat
+          // For this demo, we'll assume all meat is halal-prepared
+          // In production, this would be marked in the data
+          return !item.name.toLowerCase().includes('pork') &&
+                 !item.name.toLowerCase().includes('bacon') &&
+                 !item.name.toLowerCase().includes('ham');
+        }
+        
+        if (filter === 'kosher') {
+          // Kosher: no pork, shellfish, or mixing meat and dairy
+          // For this demo, we'll check for obvious non-kosher items
+          return !item.name.toLowerCase().includes('pork') &&
+                 !item.name.toLowerCase().includes('bacon') &&
+                 !item.name.toLowerCase().includes('ham') &&
+                 !item.allergens.includes('crustaceans') &&
+                 !item.allergens.includes('molluscs');
+        }
+        
+        // For regular allergen filters, check if item doesn't contain the allergen
         return !item.allergens.includes(filter);
       });
     });

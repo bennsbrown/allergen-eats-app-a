@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { ALLERGEN_FILTERS } from '@/types/allergen';
+import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -46,6 +46,8 @@ export default function HomeScreen() {
       <IconSymbol name="info.circle" color={colors.primary} />
     </Pressable>
   );
+
+  const allFilters = [...DIETARY_NEEDS_FILTERS, ...PREFERENCES_FILTERS];
 
   return (
     <>
@@ -95,16 +97,56 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Allergen Filter Chips */}
+          {/* Dietary Needs Filter Section */}
           <View style={styles.filtersSection}>
-            <Text style={styles.sectionTitle}>Filter by Dietary Needs</Text>
+            <Text style={styles.sectionTitle}>Dietary Needs</Text>
+            <Text style={styles.sectionSubtitle}>Select allergens to avoid</Text>
             <View style={styles.filterChipsContainer}>
-              {ALLERGEN_FILTERS.map((filter, index) => {
+              {DIETARY_NEEDS_FILTERS.map((filter, index) => {
                 const isSelected = selectedFilters.includes(filter.id);
                 return (
                   <Animated.View
                     key={filter.id}
-                    entering={FadeInDown.delay(index * 50)}
+                    entering={FadeInDown.delay(index * 30)}
+                  >
+                    <Pressable
+                      style={[
+                        styles.filterChip,
+                        isSelected && styles.filterChipSelected,
+                      ]}
+                      onPress={() => toggleFilter(filter.id)}
+                    >
+                      <IconSymbol
+                        name={filter.icon as any}
+                        color={isSelected ? colors.text : colors.primary}
+                        size={18}
+                      />
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          isSelected && styles.filterChipTextSelected,
+                        ]}
+                      >
+                        {filter.name}
+                      </Text>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Preferences Filter Section */}
+          <View style={styles.filtersSection}>
+            <Text style={styles.sectionTitle}>Preferences</Text>
+            <Text style={styles.sectionSubtitle}>Select dietary preferences</Text>
+            <View style={styles.filterChipsContainer}>
+              {PREFERENCES_FILTERS.map((filter, index) => {
+                const isSelected = selectedFilters.includes(filter.id);
+                return (
+                  <Animated.View
+                    key={filter.id}
+                    entering={FadeInDown.delay((DIETARY_NEEDS_FILTERS.length + index) * 30)}
                   >
                     <Pressable
                       style={[
@@ -137,9 +179,9 @@ export default function HomeScreen() {
           {selectedFilters.length > 0 && (
             <View style={styles.activeFiltersSection}>
               <Text style={styles.activeFiltersText}>
-                Showing {searchFilteredItems.length} dishes free from:{' '}
+                Showing {searchFilteredItems.length} dishes matching your filters:{' '}
                 {selectedFilters
-                  .map(id => ALLERGEN_FILTERS.find(f => f.id === id)?.name)
+                  .map(id => allFilters.find(f => f.id === id)?.name)
                   .join(', ')}
               </Text>
               <Pressable onPress={() => setSelectedFilters([])}>
@@ -188,7 +230,7 @@ export default function HomeScreen() {
                           {item.allergens.map(allergen => (
                             <View key={allergen} style={styles.allergenBadge}>
                               <Text style={styles.allergenBadgeText}>
-                                {ALLERGEN_FILTERS.find(f => f.id === allergen)?.name || allergen}
+                                {allFilters.find(f => f.id === allergen)?.name || allergen}
                               </Text>
                             </View>
                           ))}
@@ -208,23 +250,29 @@ export default function HomeScreen() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>1.</Text>
                 <Text style={styles.infoText}>
-                  Select your dietary restrictions using the filter chips above
+                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>2.</Text>
                 <Text style={styles.infoText}>
-                  Browse dishes that are safe for you
+                  Choose dietary preferences like Vegan, Vegetarian, Halal, or Kosher
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>3.</Text>
                 <Text style={styles.infoText}>
-                  Each dish shows which allergens it contains
+                  Browse dishes that are safe for you
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>4.</Text>
+                <Text style={styles.infoText}>
+                  Each dish shows which allergens it contains
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>5.</Text>
                 <Text style={styles.infoText}>
                   Use the search bar to find specific dishes
                 </Text>
@@ -305,12 +353,18 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filtersSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: colors.text,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   filterChipsContainer: {
