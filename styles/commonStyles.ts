@@ -2,19 +2,18 @@
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 export const colors = {
-  // Professional blue-gray theme (less romantic)
-  background: '#F5F7FA',
-  text: '#1A1A1A',
-  textSecondary: '#6B7280',
-  primary: '#3B82F6', // Blue
+  background: '#F0F9FF',
+  text: '#1E293B',
+  textSecondary: '#64748B',
+  primary: '#3B82F6',
   primaryDark: '#2563EB',
-  secondary: '#1E40AF', // Deep blue
-  accent: '#BFDBFE', // Light blue
+  secondary: '#1E40AF',
+  accent: '#DBEAFE',
   card: '#FFFFFF',
   highlight: '#EFF6FF',
-  success: '#10B981',
+  success: '#16A34A',
   warning: '#F59E0B',
-  danger: '#EF4444',
+  danger: '#DC2626',
 };
 
 export const buttonStyles = StyleSheet.create({
