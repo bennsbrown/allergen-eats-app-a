@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Eaze",
-    "slug": "Eaze",
+    "name": "Natively",
+    "slug": "Natively",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -43,6 +43,5 @@
     "extra": {
       "router": {}
     }
-  },
-  "scheme": "Eaze"
+  }
 }

@@ -14,84 +14,28 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-
-// Business data mapping based on business code
-const BUSINESS_DATA: Record<string, {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  subscriptionStatus: 'active' | 'inactive' | 'trial';
-  subscriptionExpiry: string;
-}> = {
-  'DEMO2024': {
-    name: 'The Gourmet Kitchen',
-    address: '123 Main Street, London, UK',
-    phone: '+44 20 1234 5678',
-    email: 'info@gourmetkitchen.com',
-    subscriptionStatus: 'active',
-    subscriptionExpiry: '2025-12-31',
-  },
-  'CAFE2024': {
-    name: 'Sunrise Café',
-    address: '456 High Street, Manchester, UK',
-    phone: '+44 161 234 5678',
-    email: 'hello@sunrisecafe.com',
-    subscriptionStatus: 'trial',
-    subscriptionExpiry: '2024-06-30',
-  },
-  'REST2024': {
-    name: 'Ocean View Restaurant',
-    address: '789 Beach Road, Brighton, UK',
-    phone: '+44 1273 234 567',
-    email: 'contact@oceanview.com',
-    subscriptionStatus: 'inactive',
-    subscriptionExpiry: '2024-01-15',
-  },
-};
 
 export default function ProfileScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginCode, setLoginCode] = useState('');
-  const [businessCode, setBusinessCode] = useState('DEMO2024');
-  const [businessInfo, setBusinessInfo] = useState(BUSINESS_DATA['DEMO2024']);
+  const [restaurantName, setRestaurantName] = useState('My Restaurant');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [businessCode, setBusinessCode] = useState('DEMO2024');
+
+  // Simple login - in production, this would validate against a backend
+  const VALID_CODE = 'DEMO2024';
 
   const handleLogin = () => {
-    const code = loginCode.trim().toUpperCase();
-    const businessData = BUSINESS_DATA[code];
-    
-    if (businessData) {
-      // Check subscription status
-      if (businessData.subscriptionStatus === 'inactive') {
-        Alert.alert(
-          'Subscription Required',
-          'Your subscription has expired. Please renew your subscription to access the business dashboard.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Renew Subscription', 
-              onPress: () => {
-                console.log('Navigate to subscription renewal');
-                Alert.alert('Subscription', 'In production, this would open the subscription renewal page.');
-              }
-            }
-          ]
-        );
-        return;
-      }
-      
+    if (loginCode.trim().toUpperCase() === VALID_CODE) {
       setIsLoggedIn(true);
-      setBusinessCode(code);
-      setBusinessInfo(businessData);
-      Alert.alert('Success', `Welcome to ${businessData.name}!`);
-      console.log('Business login successful:', code);
+      Alert.alert('Success', 'Welcome to your business dashboard!');
+      console.log('Business login successful');
     } else {
       Alert.alert('Invalid Code', 'Please enter a valid business access code.');
-      console.log('Login failed with code:', code);
+      console.log('Login failed with code:', loginCode);
     }
   };
 
@@ -105,7 +49,7 @@ export default function ProfileScreen() {
   const handleSaveSettings = () => {
     setIsEditing(false);
     Alert.alert('Settings Saved', 'Your restaurant settings have been updated.');
-    console.log('Settings saved:', businessInfo);
+    console.log('Settings saved:', { restaurantName, googleSheetUrl });
   };
 
   const handleConnectSheet = () => {
@@ -122,37 +66,8 @@ export default function ProfileScreen() {
   };
 
   const generateMenuUrl = () => {
-    return `https://eaze.app/menu/${businessCode}`;
-  };
-
-  const handleViewTerms = () => {
-    router.push('/terms-acceptance');
-  };
-
-  const getSubscriptionStatusColor = () => {
-    switch (businessInfo.subscriptionStatus) {
-      case 'active':
-        return colors.success;
-      case 'trial':
-        return colors.warning;
-      case 'inactive':
-        return colors.danger;
-      default:
-        return colors.textSecondary;
-    }
-  };
-
-  const getSubscriptionStatusText = () => {
-    switch (businessInfo.subscriptionStatus) {
-      case 'active':
-        return 'Active';
-      case 'trial':
-        return 'Trial';
-      case 'inactive':
-        return 'Expired';
-      default:
-        return 'Unknown';
-    }
+    // In production, this would be your actual app URL with business ID
+    return `https://yourapp.com/menu/${businessCode}`;
   };
 
   // Login Screen
@@ -195,14 +110,9 @@ export default function ProfileScreen() {
               <View style={styles.loginHintCard}>
                 <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
                 <Text style={styles.loginHintText}>
-                  Demo codes: <Text style={styles.loginHintCode}>DEMO2024</Text>, <Text style={styles.loginHintCode}>CAFE2024</Text>, <Text style={styles.loginHintCode}>REST2024</Text>
+                  Demo code: <Text style={styles.loginHintCode}>DEMO2024</Text>
                 </Text>
               </View>
-
-              <Pressable style={styles.termsLink} onPress={handleViewTerms}>
-                <IconSymbol name="doc.text" color={colors.primary} size={16} />
-                <Text style={styles.termsLinkText}>View Terms & Conditions</Text>
-              </Pressable>
             </View>
           </View>
         </SafeAreaView>
@@ -236,26 +146,17 @@ export default function ProfileScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.headerTitle}>{businessInfo.name}</Text>
+            <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
             </Text>
-            
-            {/* Subscription Status Badge */}
-            <View style={[styles.subscriptionBadge, { backgroundColor: getSubscriptionStatusColor() }]}>
-              <IconSymbol name="checkmark.seal.fill" color={colors.card} size={16} />
-              <Text style={styles.subscriptionBadgeText}>
-                {getSubscriptionStatusText()} until {businessInfo.subscriptionExpiry}
-              </Text>
-            </View>
-
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Pressable>
           </View>
 
-          {/* QR Code Card - Enhanced with blue/white theme */}
+          {/* QR Code Card */}
           <View style={styles.qrCard}>
             <View style={styles.cardHeader}>
               <IconSymbol name="qrcode" color={colors.primary} size={24} />
@@ -266,23 +167,16 @@ export default function ProfileScreen() {
             </Text>
             <View style={styles.qrCodeContainer}>
               <View style={styles.qrCodeWrapper}>
-                <View style={styles.qrCodeInner}>
-                  <QRCode
-                    value={generateMenuUrl()}
-                    size={220}
-                    color={colors.primary}
-                    backgroundColor={colors.card}
-                    logo={require('@/assets/images/final_quest_240x240.png')}
-                    logoSize={50}
-                    logoBackgroundColor={colors.card}
-                    logoMargin={4}
-                    logoBorderRadius={8}
-                  />
-                </View>
-                <View style={styles.qrBrandingContainer}>
-                  <Text style={styles.qrBrandingText}>Powered by</Text>
-                  <Text style={styles.qrBrandingLogo}>Eaze</Text>
-                </View>
+                <QRCode
+                  value={generateMenuUrl()}
+                  size={200}
+                  color={colors.text}
+                  backgroundColor={colors.card}
+                  logo={require('@/assets/images/final_quest_240x240.png')}
+                  logoSize={40}
+                  logoBackgroundColor={colors.card}
+                  logoMargin={2}
+                />
               </View>
               <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
             </View>
@@ -324,7 +218,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
-          {/* Restaurant Info Card - Auto-updated from business code */}
+          {/* Restaurant Info Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Restaurant Information</Text>
@@ -340,46 +234,11 @@ export default function ProfileScreen() {
               <Text style={styles.inputLabel}>Restaurant Name</Text>
               <TextInput
                 style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={businessInfo.name}
-                onChangeText={(text) => setBusinessInfo({ ...businessInfo, name: text })}
+                value={restaurantName}
+                onChangeText={setRestaurantName}
                 editable={isEditing}
                 placeholder="Enter restaurant name"
                 placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Address</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={businessInfo.address}
-                onChangeText={(text) => setBusinessInfo({ ...businessInfo, address: text })}
-                editable={isEditing}
-                placeholder="Enter address"
-                placeholderTextColor={colors.textSecondary}
-                multiline
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Phone</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={businessInfo.phone}
-                onChangeText={(text) => setBusinessInfo({ ...businessInfo, phone: text })}
-                editable={isEditing}
-                placeholder="Enter phone number"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={businessInfo.email}
-                onChangeText={(text) => setBusinessInfo({ ...businessInfo, email: text })}
-                editable={isEditing}
-                placeholder="Enter email"
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
               />
             </View>
             {isEditing && (
@@ -485,16 +344,12 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* About Card - Changed to "About Eaze" */}
+          {/* About Card */}
           <View style={styles.aboutCard}>
-            <Text style={styles.aboutTitle}>About Eaze</Text>
+            <Text style={styles.aboutTitle}>About Allergen Menu</Text>
             <Text style={styles.aboutText}>
-              Eaze helps restaurants digitalize their allergen information, making it easy for customers to find dishes that match their dietary needs. Our platform streamlines menu management and enhances customer experience.
+              This app helps restaurants digitalize their allergen information, making it easy for customers to find dishes that match their dietary needs.
             </Text>
-            <Pressable style={styles.termsButton} onPress={handleViewTerms}>
-              <IconSymbol name="doc.text" color={colors.card} size={18} />
-              <Text style={styles.termsButtonText}>View Terms & Conditions</Text>
-            </Pressable>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
         </ScrollView>
@@ -535,7 +390,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 8px 24px rgba(59, 130, 246, 0.3)',
+    boxShadow: '0px 8px 24px rgba(255, 107, 107, 0.3)',
     elevation: 8,
   },
   loginTitle: {
@@ -575,7 +430,7 @@ const styles = StyleSheet.create({
     padding: 18,
     width: '100%',
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.4)',
+    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.4)',
     elevation: 4,
   },
   loginButtonText: {
@@ -595,27 +450,14 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   loginHintText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
-    flex: 1,
   },
   loginHintCode: {
     fontWeight: '800',
     color: colors.secondary,
     letterSpacing: 1,
-  },
-  termsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 16,
-    padding: 8,
-  },
-  termsLinkText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '700',
   },
   // Dashboard Styles
   header: {
@@ -628,7 +470,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 16px rgba(59, 130, 246, 0.3)',
+    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
     elevation: 6,
   },
   headerTitle: {
@@ -636,28 +478,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
     marginTop: 12,
-    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 15,
     color: colors.textSecondary,
     marginTop: 6,
     fontWeight: '500',
-    textAlign: 'center',
-  },
-  subscriptionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 12,
-  },
-  subscriptionBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.card,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -668,7 +494,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 16,
     gap: 8,
-    boxShadow: '0px 2px 6px rgba(30, 64, 175, 0.3)',
+    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
     elevation: 2,
   },
   logoutButtonText: {
@@ -676,16 +502,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.card,
   },
-  // QR Code Card Styles - Enhanced
+  // QR Code Card Styles
   qrCard: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 16,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    boxShadow: '0px 6px 20px rgba(59, 130, 246, 0.25)',
-    elevation: 6,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
+    elevation: 3,
     alignItems: 'center',
   },
   qrCodeContainer: {
@@ -693,40 +519,18 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   qrCodeWrapper: {
-    padding: 24,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    boxShadow: '0px 4px 16px rgba(59, 130, 246, 0.3)',
-    elevation: 4,
-    alignItems: 'center',
-  },
-  qrCodeInner: {
-    padding: 16,
+    padding: 20,
     backgroundColor: colors.card,
     borderRadius: 16,
-  },
-  qrBrandingContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-    gap: 4,
-  },
-  qrBrandingText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  qrBrandingLogo: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: '800',
-    letterSpacing: 1,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 2px 8px rgba(255, 107, 107, 0.2)',
+    elevation: 2,
   },
   qrCodeUrl: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 16,
+    marginTop: 12,
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -744,7 +548,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 8,
-    boxShadow: '0px 2px 6px rgba(59, 130, 246, 0.3)',
+    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
     elevation: 2,
   },
   qrActionButtonSecondary: {
@@ -779,7 +583,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(59, 130, 246, 0.15)',
+    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
     elevation: 3,
   },
   cardHeader: {
@@ -828,7 +632,7 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(59, 130, 246, 0.3)',
+    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
     elevation: 2,
   },
   saveButtonText: {
@@ -845,7 +649,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(30, 64, 175, 0.3)',
+    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
     elevation: 2,
   },
   connectButtonText: {
@@ -858,7 +662,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.3)',
+    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
     elevation: 4,
   },
   instructionText: {
@@ -924,7 +728,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(30, 64, 175, 0.3)',
+    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
     elevation: 4,
   },
   aboutTitle: {
@@ -938,23 +742,8 @@ const styles = StyleSheet.create({
     color: colors.card,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 16,
-    fontWeight: '500',
-  },
-  termsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
     marginBottom: 12,
-  },
-  termsButtonText: {
-    fontSize: 13,
-    color: colors.card,
-    fontWeight: '800',
+    fontWeight: '500',
   },
   versionText: {
     fontSize: 12,
