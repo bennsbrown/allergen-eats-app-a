@@ -2,7 +2,7 @@
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Button } from "@/components/button";
+import Button from "@/components/button";
 import { SystemBars } from "react-native-edge-to-edge";
 import { useColorScheme, Alert } from "react-native";
 import React, { useEffect, useState } from "react";
