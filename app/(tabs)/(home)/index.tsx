@@ -9,6 +9,7 @@ import {
   Text,
   Platform,
   TextInput,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -65,6 +66,15 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Logo Section */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('@/assets/images/a97f26c3-6271-4b81-b184-92e9490a9e62.jpeg')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome! 🌿</Text>
@@ -242,6 +252,18 @@ const styles = StyleSheet.create({
   },
   scrollContentWithTabBar: {
     paddingBottom: 100,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingVertical: 16,
+  },
+  logo: {
+    width: 180,
+    height: 180,
+    borderRadius: 20,
+    boxShadow: '0px 4px 16px rgba(164, 214, 94, 0.3)',
+    elevation: 6,
   },
   welcomeSection: {
     backgroundColor: colors.primary,

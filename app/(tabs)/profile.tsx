@@ -10,6 +10,7 @@ import {
   Pressable,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -57,11 +58,13 @@ export default function ProfileScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
+          {/* Header with Logo */}
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <IconSymbol name="building.2.fill" color={colors.text} size={48} />
-            </View>
+            <Image
+              source={require('@/assets/images/a97f26c3-6271-4b81-b184-92e9490a9e62.jpeg')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.headerTitle}>Restaurant Settings</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
@@ -229,16 +232,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 20,
   },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(255, 217, 61, 0.3)',
-    elevation: 4,
+    boxShadow: '0px 4px 16px rgba(164, 214, 94, 0.3)',
+    elevation: 6,
   },
   headerTitle: {
     fontSize: 28,
