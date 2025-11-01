@@ -15,11 +15,36 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 
 export default function ProfileScreen() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginCode, setLoginCode] = useState('');
   const [restaurantName, setRestaurantName] = useState('My Restaurant');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [businessCode, setBusinessCode] = useState('DEMO2024');
+
+  // Simple login - in production, this would validate against a backend
+  const VALID_CODE = 'DEMO2024';
+
+  const handleLogin = () => {
+    if (loginCode.trim().toUpperCase() === VALID_CODE) {
+      setIsLoggedIn(true);
+      Alert.alert('Success', 'Welcome to your business dashboard!');
+      console.log('Business login successful');
+    } else {
+      Alert.alert('Invalid Code', 'Please enter a valid business access code.');
+      console.log('Login failed with code:', loginCode);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoginCode('');
+    Alert.alert('Logged Out', 'You have been logged out of the business section.');
+    console.log('Business logout');
+  };
 
   const handleSaveSettings = () => {
     setIsEditing(false);
@@ -40,12 +65,68 @@ export default function ProfileScreen() {
     console.log('Connecting to Google Sheet:', googleSheetUrl);
   };
 
+  const generateMenuUrl = () => {
+    // In production, this would be your actual app URL with business ID
+    return `https://yourapp.com/menu/${businessCode}`;
+  };
+
+  // Login Screen
+  if (!isLoggedIn) {
+    return (
+      <>
+        {Platform.OS === 'ios' && (
+          <Stack.Screen
+            options={{
+              title: 'Business',
+            }}
+          />
+        )}
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.loginContainer}>
+            <View style={styles.loginCard}>
+              <IconSymbol name="lock.fill" color={colors.primary} size={64} />
+              <Text style={styles.loginTitle}>Business Access</Text>
+              <Text style={styles.loginSubtitle}>
+                Enter your unique business code to access the dashboard
+              </Text>
+              
+              <View style={styles.loginInputContainer}>
+                <TextInput
+                  style={styles.loginInput}
+                  value={loginCode}
+                  onChangeText={setLoginCode}
+                  placeholder="Enter business code"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  secureTextEntry={false}
+                />
+              </View>
+
+              <Pressable style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Access Dashboard</Text>
+              </Pressable>
+
+              <View style={styles.loginHintCard}>
+                <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
+                <Text style={styles.loginHintText}>
+                  Demo code: <Text style={styles.loginHintCode}>DEMO2024</Text>
+                </Text>
+              </View>
+            </View>
+          </View>
+        </SafeAreaView>
+      </>
+    );
+  }
+
+  // Business Dashboard (after login)
   return (
     <>
       {Platform.OS === 'ios' && (
         <Stack.Screen
           options={{
-            title: 'Settings',
+            title: 'Business Dashboard',
           }}
         />
       )}
@@ -65,9 +146,75 @@ export default function ProfileScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.headerTitle}>Restaurant Settings</Text>
+            <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
+            </Text>
+            <Pressable style={styles.logoutButton} onPress={handleLogout}>
+              <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </Pressable>
+          </View>
+
+          {/* QR Code Card */}
+          <View style={styles.qrCard}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="qrcode" color={colors.primary} size={24} />
+              <Text style={styles.cardTitle}>Customer Menu QR Code</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Share this QR code with your customers. They can scan it to view your allergen-friendly menu.
+            </Text>
+            <View style={styles.qrCodeContainer}>
+              <View style={styles.qrCodeWrapper}>
+                <QRCode
+                  value={generateMenuUrl()}
+                  size={200}
+                  color={colors.text}
+                  backgroundColor={colors.card}
+                  logo={require('@/assets/images/final_quest_240x240.png')}
+                  logoSize={40}
+                  logoBackgroundColor={colors.card}
+                  logoMargin={2}
+                />
+              </View>
+              <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
+            </View>
+            <View style={styles.qrActionsContainer}>
+              <Pressable 
+                style={styles.qrActionButton}
+                onPress={() => {
+                  Alert.alert('Download QR Code', 'In production, this would download the QR code as an image.');
+                  console.log('Download QR code');
+                }}
+              >
+                <IconSymbol name="arrow.down.circle.fill" color={colors.card} size={20} />
+                <Text style={styles.qrActionButtonText}>Download</Text>
+              </Pressable>
+              <Pressable 
+                style={[styles.qrActionButton, styles.qrActionButtonSecondary]}
+                onPress={() => {
+                  Alert.alert('Share QR Code', 'In production, this would open the share dialog.');
+                  console.log('Share QR code');
+                }}
+              >
+                <IconSymbol name="square.and.arrow.up.fill" color={colors.card} size={20} />
+                <Text style={styles.qrActionButtonText}>Share</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Business Code Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="key.fill" color={colors.secondary} size={24} />
+              <Text style={styles.cardTitle}>Your Business Code</Text>
+            </View>
+            <View style={styles.businessCodeDisplay}>
+              <Text style={styles.businessCodeText}>{businessCode}</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Keep this code secure. You&apos;ll need it to access the business dashboard.
             </Text>
           </View>
 
@@ -227,6 +374,92 @@ const styles = StyleSheet.create({
   scrollContentWithTabBar: {
     paddingBottom: 100,
   },
+  // Login Screen Styles
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loginCard: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 8px 24px rgba(255, 107, 107, 0.3)',
+    elevation: 8,
+  },
+  loginTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.text,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  loginSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    fontWeight: '500',
+    lineHeight: 24,
+  },
+  loginInputContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  loginInput: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 18,
+    fontSize: 18,
+    color: colors.text,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 18,
+    width: '100%',
+    alignItems: 'center',
+    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.4)',
+    elevation: 4,
+  },
+  loginButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.card,
+  },
+  loginHintCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 24,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  loginHintText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  loginHintCode: {
+    fontWeight: '800',
+    color: colors.secondary,
+    letterSpacing: 1,
+  },
+  // Dashboard Styles
   header: {
     alignItems: 'center',
     marginBottom: 24,
@@ -252,6 +485,97 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '500',
   },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginTop: 16,
+    gap: 8,
+    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
+    elevation: 2,
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.card,
+  },
+  // QR Code Card Styles
+  qrCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
+    elevation: 3,
+    alignItems: 'center',
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  qrCodeWrapper: {
+    padding: 20,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 2px 8px rgba(255, 107, 107, 0.2)',
+    elevation: 2,
+  },
+  qrCodeUrl: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 12,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  qrActionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  qrActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
+    elevation: 2,
+  },
+  qrActionButtonSecondary: {
+    backgroundColor: colors.secondary,
+  },
+  qrActionButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.card,
+  },
+  // Business Code Card
+  businessCodeDisplay: {
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 20,
+    marginVertical: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  businessCodeText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 4,
+  },
+  // Common Card Styles
   card: {
     backgroundColor: colors.card,
     borderRadius: 16,
