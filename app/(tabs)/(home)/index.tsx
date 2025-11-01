@@ -69,7 +69,7 @@ export default function HomeScreen() {
           {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Image
-              source={require('@/assets/images/a97f26c3-6271-4b81-b184-92e9490a9e62.jpeg')}
+              source={{ uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' }}
               style={styles.logo}
               resizeMode="contain"
             />
