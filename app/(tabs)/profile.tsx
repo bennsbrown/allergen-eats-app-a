@@ -10,7 +10,6 @@ import {
   Pressable,
   TextInput,
   Alert,
-  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -58,13 +57,8 @@ export default function ProfileScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with Logo */}
+          {/* Header */}
           <View style={styles.header}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
             <Text style={styles.headerTitle}>Restaurant Settings</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
@@ -78,7 +72,7 @@ export default function ProfileScreen() {
               <Pressable onPress={() => setIsEditing(!isEditing)}>
                 <IconSymbol
                   name={isEditing ? 'checkmark.circle.fill' : 'pencil.circle.fill'}
-                  color={colors.primary}
+                  color={colors.text}
                   size={24}
                 />
               </Pressable>
@@ -104,7 +98,7 @@ export default function ProfileScreen() {
           {/* Google Sheets Integration Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="doc.text.fill" color={colors.secondary} size={24} />
+              <IconSymbol name="doc.text.fill" color={colors.text} size={24} />
               <Text style={styles.cardTitle}>Google Sheets Integration</Text>
             </View>
             <Text style={styles.cardDescription}>
@@ -131,7 +125,7 @@ export default function ProfileScreen() {
           {/* Instructions Card */}
           <View style={styles.instructionsCard}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="info.circle.fill" color={colors.card} size={24} />
+              <IconSymbol name="info.circle.fill" color={colors.text} size={24} />
               <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
             </View>
             <Text style={styles.instructionText}>
@@ -139,31 +133,31 @@ export default function ProfileScreen() {
             </Text>
             <View style={styles.columnList}>
               <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnBullet}>-</Text>
                 <Text style={styles.columnText}>
                   <Text style={styles.columnBold}>Name:</Text> Dish name
                 </Text>
               </View>
               <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnBullet}>-</Text>
                 <Text style={styles.columnText}>
                   <Text style={styles.columnBold}>Description:</Text> Brief description
                 </Text>
               </View>
               <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnBullet}>-</Text>
                 <Text style={styles.columnText}>
                   <Text style={styles.columnBold}>Category:</Text> Mains, Salads, Desserts, etc.
                 </Text>
               </View>
               <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnBullet}>-</Text>
                 <Text style={styles.columnText}>
                   <Text style={styles.columnBold}>Allergens:</Text> Comma-separated (nuts, gluten, dairy, etc.)
                 </Text>
               </View>
               <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnBullet}>-</Text>
                 <Text style={styles.columnText}>
                   <Text style={styles.columnBold}>Price:</Text> Numeric value
                 </Text>
@@ -174,7 +168,7 @@ export default function ProfileScreen() {
           {/* Stats Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="chart.bar.fill" color={colors.primary} size={24} />
+              <IconSymbol name="chart.bar.fill" color={colors.text} size={24} />
               <Text style={styles.cardTitle}>Menu Statistics</Text>
             </View>
             <View style={styles.statsGrid}>
@@ -232,19 +226,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 20,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 20,
-    marginBottom: 16,
-    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
-    elevation: 6,
-  },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.text,
-    marginTop: 12,
   },
   headerSubtitle: {
     fontSize: 15,
@@ -254,13 +239,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 16,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
-    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -270,7 +253,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.text,
     flex: 1,
   },
@@ -286,17 +269,17 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
   input: {
     backgroundColor: colors.background,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
     fontSize: 16,
     color: colors.text,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
   },
   inputDisabled: {
@@ -304,48 +287,44 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
     alignItems: 'center',
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
-    elevation: 2,
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.card,
   },
   connectButton: {
-    backgroundColor: colors.secondary,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
     padding: 14,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
-    elevation: 2,
   },
   connectButtonText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.card,
   },
   instructionsCard: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   instructionText: {
     fontSize: 14,
-    color: colors.card,
+    color: colors.text,
     marginBottom: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   columnList: {
     gap: 8,
@@ -356,20 +335,20 @@ const styles = StyleSheet.create({
   },
   columnBullet: {
     fontSize: 16,
-    color: colors.card,
+    color: colors.text,
     marginRight: 8,
     marginTop: 2,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   columnText: {
     flex: 1,
     fontSize: 14,
-    color: colors.card,
+    color: colors.text,
     lineHeight: 20,
     fontWeight: '500',
   },
   columnBold: {
-    fontWeight: '800',
+    fontWeight: '700',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -380,15 +359,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: colors.highlight,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
   },
   statValue: {
     fontSize: 36,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.primary,
   },
   statLabel: {
@@ -396,26 +375,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   aboutCard: {
-    backgroundColor: colors.secondary,
-    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderRadius: 12,
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   aboutTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: colors.card,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: 8,
   },
   aboutText: {
     fontSize: 14,
-    color: colors.card,
+    color: colors.text,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
@@ -423,8 +402,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: colors.card,
-    opacity: 0.7,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
 });

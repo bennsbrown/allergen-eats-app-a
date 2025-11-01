@@ -9,7 +9,6 @@ import {
   Text,
   Platform,
   TextInput,
-  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -43,7 +42,7 @@ export default function HomeScreen() {
       }}
       style={styles.headerButtonContainer}
     >
-      <IconSymbol name="info.circle" color={colors.primary} />
+      <IconSymbol name="info.circle" color={colors.text} />
     </Pressable>
   );
 
@@ -66,23 +65,6 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-
-          {/* Welcome Section */}
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome! ❤️</Text>
-            <Text style={styles.welcomeText}>
-              Find dishes that match your dietary needs. Select your allergen preferences below.
-            </Text>
-          </View>
-
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
@@ -113,11 +95,6 @@ export default function HomeScreen() {
                       ]}
                       onPress={() => toggleFilter(filter.id)}
                     >
-                      <IconSymbol
-                        name={filter.icon as any}
-                        color={isSelected ? colors.text : colors.primary}
-                        size={18}
-                      />
                       <Text
                         style={[
                           styles.filterChipText,
@@ -253,50 +230,16 @@ const styles = StyleSheet.create({
   scrollContentWithTabBar: {
     paddingBottom: 100,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 16,
-  },
-  logo: {
-    width: 180,
-    height: 180,
-    borderRadius: 20,
-    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
-    elevation: 6,
-  },
-  welcomeSection: {
-    backgroundColor: colors.primary,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
-    elevation: 4,
-  },
-  welcomeTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 24,
-    fontWeight: '500',
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 20,
-    borderWidth: 2,
+    marginBottom: 24,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(190, 22, 34, 0.2)',
-    elevation: 2,
   },
   searchInput: {
     flex: 1,
@@ -305,11 +248,11 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filtersSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
   },
@@ -322,24 +265,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 24,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 6,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 4px rgba(255, 107, 107, 0.15)',
-    elevation: 2,
   },
   filterChipSelected: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-    boxShadow: '0px 4px 8px rgba(190, 22, 34, 0.3)',
-    elevation: 4,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterChipText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
   },
   filterChipTextSelected: {
@@ -347,38 +286,36 @@ const styles = StyleSheet.create({
   },
   activeFiltersSection: {
     backgroundColor: colors.highlight,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
   },
   activeFiltersText: {
     flex: 1,
     fontSize: 14,
     color: colors.text,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   clearFiltersText: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   menuSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   menuCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
-    elevation: 3,
   },
   menuCardContent: {
     gap: 12,
@@ -390,21 +327,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuItemName: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
     flex: 1,
   },
   categoryBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.highlight,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   menuItemCategory: {
     fontSize: 11,
-    color: colors.card,
-    fontWeight: '800',
+    color: colors.text,
+    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -415,7 +354,7 @@ const styles = StyleSheet.create({
   },
   allergenBadge: {
     backgroundColor: colors.highlight,
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
@@ -424,7 +363,7 @@ const styles = StyleSheet.create({
   allergenBadgeText: {
     fontSize: 12,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   loadingContainer: {
     padding: 40,
@@ -433,7 +372,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emptyContainer: {
     padding: 40,
@@ -441,7 +380,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
@@ -454,17 +393,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   infoSection: {
-    backgroundColor: colors.secondary,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
-    elevation: 4,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   infoTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.card,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: 16,
   },
   infoList: {
@@ -476,15 +415,15 @@ const styles = StyleSheet.create({
   },
   infoBullet: {
     fontSize: 16,
-    fontWeight: '800',
-    color: colors.card,
+    fontWeight: '700',
+    color: colors.text,
     marginRight: 12,
     width: 24,
   },
   infoText: {
     flex: 1,
     fontSize: 15,
-    color: colors.card,
+    color: colors.text,
     lineHeight: 22,
     fontWeight: '500',
   },

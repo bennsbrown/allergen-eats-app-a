@@ -2,16 +2,16 @@
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 export const colors = {
-  // Red theme
-  background: '#FFF5F5',
-  text: '#1A1A1A',
-  textSecondary: '#6B5A5A',
-  primary: '#FF6B6B', // Lighter red
-  primaryDark: '#E85D5D',
+  // Minimalist white theme with black outlines and occasional red
+  background: '#FFFFFF',
+  text: '#000000',
+  textSecondary: '#666666',
+  primary: '#BE1622', // Deep red accent
+  primaryDark: '#9E1219',
   secondary: '#BE1622', // Deep red
-  accent: '#FFB3B3', // Light pink-red
+  accent: '#E0E0E0', // Light gray for borders
   card: '#FFFFFF',
-  highlight: '#FFE6E6',
+  highlight: '#F5F5F5',
   success: '#7CB342',
   warning: '#FFB300',
   danger: '#E53935',
@@ -84,8 +84,8 @@ export const commonStyles = StyleSheet.create({
     padding: 10,
     marginVertical: 8,
     width: '100%',
-    boxShadow: '0px 2px 3px rgba(255, 107, 107, 0.15)',
-    elevation: 2,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+    elevation: 1,
   },
   icon: {
     width: 60,
