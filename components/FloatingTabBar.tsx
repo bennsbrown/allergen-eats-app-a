@@ -78,7 +78,7 @@ function TabItem({ tab, isActive, onPress }: TabItemProps) {
           style={[
             styles.label,
             {
-              color: isActive ? colors.text : colors.textSecondary,
+              color: isActive ? colors.primary : colors.textSecondary,
             },
           ]}
         >
@@ -92,7 +92,7 @@ function TabItem({ tab, isActive, onPress }: TabItemProps) {
 export default function FloatingTabBar({
   tabs,
   containerWidth = Dimensions.get('window').width - 32,
-  borderRadius = 16,
+  borderRadius = 24,
   bottomMargin = 16,
 }: FloatingTabBarProps) {
   const pathname = usePathname();
@@ -153,10 +153,10 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 4,
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    boxShadow: '0px 4px 16px rgba(190, 22, 34, 0.3)',
+    elevation: 8,
   },
   tabsContainer: {
     flexDirection: 'row',
