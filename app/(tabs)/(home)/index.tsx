@@ -15,7 +15,13 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { 
+  FadeInDown, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 export default function HomeScreen() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -106,32 +112,13 @@ export default function HomeScreen() {
                 {PREFERENCES_FILTERS.map((filter, index) => {
                   const isSelected = selectedFilters.includes(filter.id);
                   return (
-                    <Animated.View
+                    <AnimatedFilterChip
                       key={filter.id}
-                      entering={FadeInDown.delay(index * 30)}
-                    >
-                      <Pressable
-                        style={[
-                          styles.filterChip,
-                          isSelected && styles.filterChipSelected,
-                        ]}
-                        onPress={() => toggleFilter(filter.id)}
-                      >
-                        <IconSymbol
-                          name={filter.icon as any}
-                          color={isSelected ? colors.card : colors.primary}
-                          size={18}
-                        />
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            isSelected && styles.filterChipTextSelected,
-                          ]}
-                        >
-                          {filter.name}
-                        </Text>
-                      </Pressable>
-                    </Animated.View>
+                      filter={filter}
+                      isSelected={isSelected}
+                      onPress={() => toggleFilter(filter.id)}
+                      delay={index * 30}
+                    />
                   );
                 })}
               </View>
@@ -146,32 +133,13 @@ export default function HomeScreen() {
               {DIETARY_NEEDS_FILTERS.map((filter, index) => {
                 const isSelected = selectedFilters.includes(filter.id);
                 return (
-                  <Animated.View
+                  <AnimatedFilterChip
                     key={filter.id}
-                    entering={FadeInDown.delay((PREFERENCES_FILTERS.length + index) * 30)}
-                  >
-                    <Pressable
-                      style={[
-                        styles.filterChip,
-                        isSelected && styles.filterChipSelected,
-                      ]}
-                      onPress={() => toggleFilter(filter.id)}
-                    >
-                      <IconSymbol
-                        name={filter.icon as any}
-                        color={isSelected ? colors.card : colors.primary}
-                        size={18}
-                      />
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          isSelected && styles.filterChipTextSelected,
-                        ]}
-                      >
-                        {filter.name}
-                      </Text>
-                    </Pressable>
-                  </Animated.View>
+                    filter={filter}
+                    isSelected={isSelected}
+                    onPress={() => toggleFilter(filter.id)}
+                    delay={(PREFERENCES_FILTERS.length + index) * 30}
+                  />
                 );
               })}
             </View>
@@ -284,6 +252,73 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
     </>
+  );
+}
+
+// Animated Filter Chip Component
+interface AnimatedFilterChipProps {
+  filter: {
+    id: string;
+    name: string;
+    icon: string;
+  };
+  isSelected: boolean;
+  onPress: () => void;
+  delay: number;
+}
+
+function AnimatedFilterChip({ filter, isSelected, onPress, delay }: AnimatedFilterChipProps) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { 
+          scale: isSelected 
+            ? withSpring(1.05, { damping: 10, stiffness: 100 }) 
+            : withSpring(1, { damping: 10, stiffness: 100 })
+        }
+      ],
+      opacity: withTiming(opacity.value, { duration: 200 }),
+    };
+  });
+
+  const handlePress = () => {
+    // Trigger a quick scale animation on press
+    scale.value = withSpring(0.95, { damping: 10, stiffness: 200 }, () => {
+      scale.value = withSpring(1, { damping: 10, stiffness: 100 });
+    });
+    onPress();
+  };
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(delay)}
+      style={animatedStyle}
+    >
+      <Pressable
+        style={[
+          styles.filterChip,
+          isSelected && styles.filterChipSelected,
+        ]}
+        onPress={handlePress}
+      >
+        <IconSymbol
+          name={filter.icon as any}
+          color={isSelected ? colors.card : colors.primary}
+          size={18}
+        />
+        <Text
+          style={[
+            styles.filterChipText,
+            isSelected && styles.filterChipTextSelected,
+          ]}
+        >
+          {filter.name}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
