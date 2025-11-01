@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { Platform } from 'react-native';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { NativeTabs, Label } from 'expo-router/unstable-native-tabs';
 import { Stack } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
-  // Define the tabs configuration
+  // Define the tabs configuration without icons
   const tabs: TabBarItem[] = [
     {
       name: '(home)',
@@ -28,11 +28,9 @@ export default function TabLayout() {
     return (
       <NativeTabs>
         <NativeTabs.Trigger name="(home)">
-          <Icon sf="house.fill" drawable="ic_home" />
           <Label>Customer</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
-          <Icon sf="briefcase.fill" drawable="ic_business" />
           <Label>Business</Label>
         </NativeTabs.Trigger>
       </NativeTabs>

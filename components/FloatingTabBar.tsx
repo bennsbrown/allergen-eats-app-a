@@ -1,13 +1,5 @@
 
-import { IconSymbol } from '@/components/IconSymbol';
-import { BlurView } from 'expo-blur';
 import React from 'react';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-import { useTheme } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -16,8 +8,15 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '@react-navigation/native';
+import { useRouter, usePathname } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors } from '@/styles/commonStyles';
 
 export interface TabBarItem {
@@ -40,46 +39,33 @@ interface TabItemProps {
   onPress: () => void;
 }
 
-function TabItem({ tab, isActive, onPress }: TabItemProps) {
-  const scale = useSharedValue(isActive ? 1 : 0.9);
+const TabItem = ({ tab, isActive, onPress }: TabItemProps) => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(isActive ? 1 : 0.6);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: withSpring(scale.value) }],
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
     };
   });
 
   React.useEffect(() => {
-    scale.value = isActive ? 1 : 0.9;
-  }, [isActive, scale]);
+    scale.value = withSpring(isActive ? 1.05 : 1);
+    opacity.value = withSpring(isActive ? 1 : 0.6);
+  }, [isActive]);
 
   return (
     <TouchableOpacity
-      style={styles.tab}
+      style={styles.tabItem}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <Animated.View style={[styles.tabContent, animatedStyle]}>
-        <View
-          style={[
-            styles.iconContainer,
-            isActive && {
-              backgroundColor: colors.primary,
-            },
-          ]}
-        >
-          <IconSymbol
-            name={tab.icon as any}
-            color={isActive ? colors.card : colors.text}
-            size={24}
-          />
-        </View>
         <Text
           style={[
-            styles.label,
-            {
-              color: isActive ? colors.primary : colors.textSecondary,
-            },
+            styles.tabLabel,
+            isActive && styles.tabLabelActive,
           ]}
         >
           {tab.label}
@@ -87,7 +73,7 @@ function TabItem({ tab, isActive, onPress }: TabItemProps) {
       </Animated.View>
     </TouchableOpacity>
   );
-}
+};
 
 export default function FloatingTabBar({
   tabs,
@@ -95,75 +81,69 @@ export default function FloatingTabBar({
   borderRadius = 24,
   bottomMargin = 16,
 }: FloatingTabBarProps) {
-  const pathname = usePathname();
+  const { colors: themeColors } = useTheme();
   const router = useRouter();
-  const theme = useTheme();
+  const pathname = usePathname();
 
   const handleTabPress = (route: string) => {
-    router.push(route as any);
+    console.log('Tab pressed:', route);
+    router.push(route);
   };
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { marginBottom: bottomMargin }]}
       edges={['bottom']}
+      style={[styles.container, { marginBottom: bottomMargin }]}
     >
-      <View style={[styles.container, { width: containerWidth }]}>
-        <BlurView
-          intensity={80}
-          tint={theme.dark ? 'dark' : 'light'}
-          style={[
-            styles.blurContainer,
-            { borderRadius },
-            Platform.OS !== 'ios' && {
-              backgroundColor: colors.card,
-            },
-          ]}
-        >
-          <View style={styles.tabsContainer}>
-            {tabs.map((tab) => {
-              const isActive = pathname.includes(tab.name);
-              return (
-                <TabItem
-                  key={tab.name}
-                  tab={tab}
-                  isActive={isActive}
-                  onPress={() => handleTabPress(tab.route)}
-                />
-              );
-            })}
-          </View>
-        </BlurView>
-      </View>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.tabBar,
+          {
+            width: containerWidth,
+            borderRadius: borderRadius,
+            backgroundColor: Platform.OS === 'web' ? colors.card : 'transparent',
+          },
+        ]}
+      >
+        {tabs.map((tab) => {
+          const isActive = pathname.includes(tab.name);
+          return (
+            <TabItem
+              key={tab.name}
+              tab={tab}
+              isActive={isActive}
+              onPress={() => handleTabPress(tab.route)}
+            />
+          );
+        })}
+      </BlurView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     alignItems: 'center',
+    pointerEvents: 'box-none',
   },
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  blurContainer: {
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    boxShadow: '0px 4px 16px rgba(190, 22, 34, 0.3)',
-    elevation: 8,
-  },
-  tabsContainer: {
+  tabBar: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    boxShadow: '0px 8px 24px rgba(59, 130, 246, 0.2)',
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
-  tab: {
+  tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -173,16 +153,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: 2,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
+  tabLabelActive: {
+    color: colors.primary,
+    fontWeight: '800',
   },
 });

@@ -68,7 +68,7 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section */}
+          {/* Logo Section - Reduced size */}
           <View style={styles.logoContainer}>
             <Image
               source={{ uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' }}
@@ -77,11 +77,11 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Welcome Section */}
+          {/* Welcome Section - Removed heart */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome! ❤️</Text>
+            <Text style={styles.welcomeTitle}>Welcome!</Text>
             <Text style={styles.welcomeText}>
-              Find dishes that match your dietary needs. Select your allergen preferences below.
+              Find dishes that match your dietary needs. Select your preferences below.
             </Text>
           </View>
 
@@ -97,6 +97,47 @@ export default function HomeScreen() {
             />
           </View>
 
+          {/* Preferences Filter Section - MOVED ABOVE with background box */}
+          <View style={styles.preferencesBox}>
+            <View style={styles.filtersSection}>
+              <Text style={styles.sectionTitle}>Preferences</Text>
+              <Text style={styles.sectionSubtitle}>Select dietary preferences</Text>
+              <View style={styles.filterChipsContainer}>
+                {PREFERENCES_FILTERS.map((filter, index) => {
+                  const isSelected = selectedFilters.includes(filter.id);
+                  return (
+                    <Animated.View
+                      key={filter.id}
+                      entering={FadeInDown.delay(index * 30)}
+                    >
+                      <Pressable
+                        style={[
+                          styles.filterChip,
+                          isSelected && styles.filterChipSelected,
+                        ]}
+                        onPress={() => toggleFilter(filter.id)}
+                      >
+                        <IconSymbol
+                          name={filter.icon as any}
+                          color={isSelected ? colors.card : colors.primary}
+                          size={18}
+                        />
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            isSelected && styles.filterChipTextSelected,
+                          ]}
+                        >
+                          {filter.name}
+                        </Text>
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
           {/* Dietary Needs Filter Section */}
           <View style={styles.filtersSection}>
             <Text style={styles.sectionTitle}>Dietary Needs</Text>
@@ -107,7 +148,7 @@ export default function HomeScreen() {
                 return (
                   <Animated.View
                     key={filter.id}
-                    entering={FadeInDown.delay(index * 30)}
+                    entering={FadeInDown.delay((PREFERENCES_FILTERS.length + index) * 30)}
                   >
                     <Pressable
                       style={[
@@ -118,46 +159,7 @@ export default function HomeScreen() {
                     >
                       <IconSymbol
                         name={filter.icon as any}
-                        color={isSelected ? colors.text : colors.primary}
-                        size={18}
-                      />
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          isSelected && styles.filterChipTextSelected,
-                        ]}
-                      >
-                        {filter.name}
-                      </Text>
-                    </Pressable>
-                  </Animated.View>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Preferences Filter Section */}
-          <View style={styles.filtersSection}>
-            <Text style={styles.sectionTitle}>Preferences</Text>
-            <Text style={styles.sectionSubtitle}>Select dietary preferences</Text>
-            <View style={styles.filterChipsContainer}>
-              {PREFERENCES_FILTERS.map((filter, index) => {
-                const isSelected = selectedFilters.includes(filter.id);
-                return (
-                  <Animated.View
-                    key={filter.id}
-                    entering={FadeInDown.delay((DIETARY_NEEDS_FILTERS.length + index) * 30)}
-                  >
-                    <Pressable
-                      style={[
-                        styles.filterChip,
-                        isSelected && styles.filterChipSelected,
-                      ]}
-                      onPress={() => toggleFilter(filter.id)}
-                    >
-                      <IconSymbol
-                        name={filter.icon as any}
-                        color={isSelected ? colors.text : colors.primary}
+                        color={isSelected ? colors.card : colors.primary}
                         size={18}
                       />
                       <Text
@@ -250,13 +252,13 @@ export default function HomeScreen() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>1.</Text>
                 <Text style={styles.infoText}>
-                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
+                  Select dietary preferences like Vegan, Vegetarian, Halal, or Kosher
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>2.</Text>
                 <Text style={styles.infoText}>
-                  Choose dietary preferences like Vegan, Vegetarian, Halal, or Kosher
+                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
                 </Text>
               </View>
               <View style={styles.infoItem}>
@@ -295,7 +297,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 16,
   },
   scrollContentWithTabBar: {
@@ -303,66 +305,78 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 16,
+    marginBottom: 12,
+    paddingVertical: 8,
   },
   logo: {
-    width: 180,
-    height: 180,
-    borderRadius: 20,
-    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
-    elevation: 6,
-  },
-  welcomeSection: {
-    backgroundColor: colors.primary,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    boxShadow: '0px 4px 16px rgba(59, 130, 246, 0.2)',
     elevation: 4,
   },
+  welcomeSection: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.15)',
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
   welcomeTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   welcomeText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 24,
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 22,
     fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
-    borderWidth: 2,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(190, 22, 34, 0.2)',
+    boxShadow: '0px 2px 8px rgba(59, 130, 246, 0.1)',
     elevation: 2,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 10,
+    fontSize: 15,
     color: colors.text,
   },
+  preferencesBox: {
+    backgroundColor: colors.highlight,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.2)',
+    elevation: 4,
+  },
   filtersSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 12,
@@ -370,29 +384,29 @@ const styles = StyleSheet.create({
   filterChipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     gap: 6,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 4px rgba(255, 107, 107, 0.15)',
+    boxShadow: '0px 2px 4px rgba(59, 130, 246, 0.1)',
     elevation: 2,
   },
   filterChipSelected: {
     backgroundColor: colors.secondary,
     borderColor: colors.secondary,
-    boxShadow: '0px 4px 8px rgba(190, 22, 34, 0.3)',
+    boxShadow: '0px 4px 8px rgba(30, 64, 175, 0.3)',
     elevation: 4,
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
   },
@@ -401,62 +415,62 @@ const styles = StyleSheet.create({
   },
   activeFiltersSection: {
     backgroundColor: colors.highlight,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
   },
   activeFiltersText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
     fontWeight: '600',
   },
   clearFiltersText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.primary,
     fontWeight: '800',
   },
   menuSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   menuCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: 2,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
+    boxShadow: '0px 3px 10px rgba(59, 130, 246, 0.1)',
     elevation: 3,
   },
   menuCardContent: {
-    gap: 12,
+    gap: 10,
   },
   menuItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   menuItemName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.text,
     flex: 1,
   },
   categoryBadge: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   menuItemCategory: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.card,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -465,81 +479,81 @@ const styles = StyleSheet.create({
   allergenBadgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   allergenBadge: {
     backgroundColor: colors.highlight,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderWidth: 1,
     borderColor: colors.accent,
   },
   allergenBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text,
     fontWeight: '700',
   },
   loadingContainer: {
-    padding: 40,
+    padding: 32,
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   emptyContainer: {
-    padding: 40,
+    padding: 32,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
-    marginTop: 16,
+    marginTop: 12,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'center',
     fontWeight: '500',
   },
   infoSection: {
     backgroundColor: colors.secondary,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(30, 64, 175, 0.3)',
     elevation: 4,
   },
   infoTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.card,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   infoList: {
-    gap: 12,
+    gap: 10,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   infoBullet: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.card,
-    marginRight: 12,
-    width: 24,
+    marginRight: 10,
+    width: 20,
   },
   infoText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.card,
-    lineHeight: 22,
+    lineHeight: 20,
     fontWeight: '500',
   },
   headerButtonContainer: {
