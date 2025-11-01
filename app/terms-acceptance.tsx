@@ -25,7 +25,8 @@ export default function TermsAcceptanceScreen() {
     try {
       await AsyncStorage.setItem('termsAccepted', 'true');
       console.log('Terms accepted, navigating to app');
-      router.replace('/(tabs)/(home)');
+      // Use replace to prevent going back to terms screen
+      router.replace('/(tabs)/(home)/');
     } catch (error) {
       console.error('Error saving terms acceptance:', error);
     }

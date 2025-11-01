@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Button from "@/components/button";
 import { SystemBars } from "react-native-edge-to-edge";
-import { useColorScheme, Alert } from "react-native";
+import { useColorScheme } from "react-native";
 import React, { useEffect, useState } from "react";
 import { WidgetProvider } from "@/contexts/WidgetContext";
 import * as SplashScreen from "expo-splash-screen";
@@ -13,11 +13,13 @@ import { useFonts } from "expo-font";
 import {
   DarkTheme,
   DefaultTheme,
-  Theme,
   ThemeProvider,
 } from "@react-navigation/native";
 import { useNetworkState } from "expo-network";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Prevent splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -26,6 +28,7 @@ export default function RootLayout() {
   const { isConnected } = useNetworkState();
   const colorScheme = useColorScheme();
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (loaded) {
@@ -40,20 +43,18 @@ export default function RootLayout() {
   const checkTermsAcceptance = async () => {
     try {
       const accepted = await AsyncStorage.getItem('termsAccepted');
-      setTermsAccepted(accepted === 'true');
       console.log('Terms acceptance status:', accepted);
-      
-      if (accepted !== 'true') {
-        router.replace('/terms-acceptance');
-      }
+      setTermsAccepted(accepted === 'true');
+      setIsReady(true);
     } catch (error) {
       console.error('Error checking terms acceptance:', error);
       setTermsAccepted(false);
-      router.replace('/terms-acceptance');
+      setIsReady(true);
     }
   };
 
-  if (!loaded || termsAccepted === null) {
+  // Don't render anything until fonts are loaded and terms check is complete
+  if (!loaded || !isReady) {
     return null;
   }
 
@@ -66,9 +67,21 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
             }}
+            initialRouteName={termsAccepted ? "(tabs)" : "terms-acceptance"}
           >
-            <Stack.Screen name="terms-acceptance" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="terms-acceptance" 
+              options={{ 
+                headerShown: false,
+                gestureEnabled: false,
+              }} 
+            />
+            <Stack.Screen 
+              name="(tabs)" 
+              options={{ 
+                headerShown: false,
+              }} 
+            />
             <Stack.Screen
               name="modal"
               options={{
