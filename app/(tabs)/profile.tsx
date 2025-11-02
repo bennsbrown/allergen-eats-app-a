@@ -144,15 +144,13 @@ export default function ProfileScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with Logo - Matching customer section style */}
+          {/* Header with Logo - No box, matching customer section */}
           <View style={styles.logoContainer}>
-            <View style={styles.logoBox}>
-              <Image
-                source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            </View>
+            <Image
+              source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.header}>
@@ -179,8 +177,8 @@ export default function ProfileScreen() {
               <View style={styles.qrCodeBrandWrapper}>
                 <View style={styles.qrCodeLogoContainer}>
                   <Image
-                    source={require('@/assets/images/final_quest_240x240.png')}
-                    style={styles.qrCodeLogo}
+                    source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                    style={styles.qrCodeLogoImage}
                     resizeMode="contain"
                   />
                 </View>
@@ -394,35 +392,15 @@ const styles = StyleSheet.create({
   scrollContentWithTabBar: {
     paddingBottom: 100,
   },
-  // Logo Container - Matching customer section style
+  // Logo Container - No box, matching customer section
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 8,
-  },
-  logoBox: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    marginBottom: 20,
+    paddingVertical: 12,
   },
   logoImage: {
-    width: 180,
-    height: 80,
+    width: 240,
+    height: 100,
   },
   // Login Screen Styles
   loginContainer: {
@@ -573,21 +551,13 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   qrCodeLogoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    backgroundColor: colors.highlight,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: colors.accent,
-    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.2)',
-    elevation: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  qrCodeLogo: {
-    width: 60,
-    height: 60,
+  qrCodeLogoImage: {
+    width: 180,
+    height: 75,
   },
   qrCodeWrapper: {
     padding: 16,
