@@ -1,5 +1,6 @@
+
 import "react-native-reanimated";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -16,6 +17,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Button } from "@/components/button";
 import { WidgetProvider } from "@/contexts/WidgetContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -30,12 +32,37 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+  const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
 
+  // Check if terms have been accepted
   useEffect(() => {
+    const checkTermsAcceptance = async () => {
+      try {
+        const accepted = await AsyncStorage.getItem('termsAccepted');
+        console.log('Terms acceptance status:', accepted);
+        setTermsAccepted(accepted === 'true');
+        
+        if (accepted !== 'true') {
+          console.log('Terms not accepted, redirecting to terms screen');
+          router.replace('/terms-acceptance');
+        }
+      } catch (error) {
+        console.error('Error checking terms acceptance:', error);
+        setTermsAccepted(false);
+        router.replace('/terms-acceptance');
+      }
+    };
+
     if (loaded) {
-      SplashScreen.hideAsync();
+      checkTermsAcceptance();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    if (loaded && termsAccepted !== null) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, termsAccepted]);
 
   React.useEffect(() => {
     if (
@@ -49,7 +76,7 @@ export default function RootLayout() {
     }
   }, [networkState.isConnected, networkState.isInternetReachable]);
 
-  if (!loaded) {
+  if (!loaded || termsAccepted === null) {
     return null;
   }
 
@@ -86,6 +113,15 @@ export default function RootLayout() {
           <WidgetProvider>
             <GestureHandlerRootView>
             <Stack>
+              {/* Terms Acceptance Screen */}
+              <Stack.Screen 
+                name="terms-acceptance" 
+                options={{ 
+                  headerShown: false,
+                  gestureEnabled: false,
+                }} 
+              />
+
               {/* Main app with tabs */}
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 

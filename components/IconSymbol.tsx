@@ -1,3 +1,4 @@
+
 // This file is a fallback for using MaterialIcons on Android and web.
 
 import React from "react";
@@ -20,8 +21,11 @@ const MAPPING = {
   "house": "home-outlined",
   "arrow.left": "arrow-back",
   "arrow.right": "arrow-forward",
+  "arrow.right.circle.fill": "arrow-circle-right",
+  "arrow.right.square.fill": "exit-to-app",
   "arrow.up": "arrow-upward",
   "arrow.down": "arrow-downward",
+  "arrow.down.circle.fill": "arrow-circle-down",
   "chevron.left": "chevron-left",
   "chevron.right": "chevron-right",
   "chevron.up": "keyboard-arrow-up",
@@ -52,12 +56,14 @@ const MAPPING = {
   "checkmark.circle": "check-circle-outline",
   "checkmark.square.fill": "check-box",
   "checkmark.square": "check-box-outline-blank",
+  "checkmark.shield.fill": "verified-user",
   "multiply": "clear",
   "trash.fill": "delete",
   "trash": "delete-outline",
 
   // Editing & Creation
   "pencil": "edit",
+  "pencil.circle.fill": "edit",
   "pencil.and.list.clipboard": "edit-note",
   "square.and.pencil": "edit",
   "doc.text.fill": "description",
@@ -95,7 +101,13 @@ const MAPPING = {
   // Shapes & Symbols
   "square": "square",
   "square.grid.3x3": "apps",
+  "square.grid.3x3.fill": "apps",
   "circle": "circle",
+  "circle.fill": "circle",
+  "circle.slash": "block",
+  "circle.hexagongrid.fill": "grain",
+  "circle.hexagongrid": "grain",
+  "circle.hexagongrid.circle": "grain",
   "triangle.fill": "change-history",
   "star.fill": "star",
   "star": "star-border",
@@ -105,12 +117,14 @@ const MAPPING = {
   // Technology & Code
   "chevron.left.forwardslash.chevron.right": "code",
   "qrcode.viewfinder": "qr-code",
+  "qrcode": "qr-code-2",
   "wifi": "wifi",
   "antenna.radiowaves.left.and.right": "signal-cellular-alt",
   "battery.100": "battery-full",
   "battery.25": "battery-2-bar",
   "lock.fill": "lock",
   "lock.open.fill": "lock-open",
+  "key.fill": "vpn-key",
 
   // Shopping & Commerce
   "cart.fill": "shopping-cart",
@@ -120,6 +134,7 @@ const MAPPING = {
   "dollarsign.circle.fill": "monetization-on",
   "bag.fill": "shopping-bag",
   "bag": "shopping-bag",
+  "briefcase.fill": "work",
 
   // Location & Maps
   "location.fill": "location-on",
@@ -146,6 +161,7 @@ const MAPPING = {
 
   // Sharing & Export
   "square.and.arrow.up": "share",
+  "square.and.arrow.up.fill": "share",
   "square.and.arrow.down": "download",
   "arrow.up.doc.fill": "upload-file",
   "link": "link",
@@ -161,6 +177,18 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
+
+  // Food & Allergens
+  "fish.fill": "set-meal",
+  "fish": "set-meal",
+  "drop.fill": "water-drop",
+  "leaf.fill": "eco",
+  "xmark.circle.fill": "cancel",
+  "sparkles": "auto-awesome",
+  "cloud.fill": "cloud",
+
+  // Charts & Analytics
+  "chart.bar.fill": "bar-chart",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
