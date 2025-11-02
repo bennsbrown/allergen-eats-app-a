@@ -12,7 +12,6 @@ import {
   Text,
   Platform,
   TextInput,
-  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
@@ -75,16 +74,15 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section - Reduced size */}
+          {/* Logo Section - Text-based logo */}
           <View style={styles.logoContainer}>
-            <Image
-              source={require('@/assets/images/499d614b-c3dc-40a7-9ddd-6a461469ccbc.jpeg')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.logoBox}>
+              <IconSymbol name="leaf.fill" color={colors.primary} size={48} />
+              <Text style={styles.logoText}>AllergenMenu</Text>
+            </View>
           </View>
 
-          {/* Welcome Section - Removed heart */}
+          {/* Welcome Section */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome!</Text>
             <Text style={styles.welcomeText}>
@@ -104,7 +102,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Preferences Filter Section - MOVED ABOVE with background box */}
+          {/* Preferences Filter Section */}
           <View style={styles.preferencesBox}>
             <View style={styles.filtersSection}>
               <Text style={styles.sectionTitle}>Preferences</Text>
@@ -322,10 +320,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingVertical: 8,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 16,
+  logoBox: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
     ...Platform.select({
       ios: {
         shadowColor: colors.primary,
@@ -337,6 +339,13 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.primary,
+    marginTop: 8,
+    letterSpacing: 0.5,
   },
   welcomeSection: {
     backgroundColor: colors.card,
