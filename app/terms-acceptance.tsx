@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
@@ -15,13 +15,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TermsAcceptanceScreen() {
-  const [isChecked, setIsChecked] = useState(false);
-
   const handleAccept = async () => {
-    if (!isChecked) {
-      return;
-    }
-    
     try {
       await AsyncStorage.setItem('termsAccepted', 'true');
       console.log('Terms accepted, navigating to app');
@@ -106,30 +100,15 @@ export default function TermsAcceptanceScreen() {
 
       <View style={styles.footer}>
         <Pressable 
-          style={styles.checkboxContainer}
-          onPress={() => setIsChecked(!isChecked)}
-        >
-          <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-            {isChecked && (
-              <IconSymbol name="checkmark" color={colors.card} size={18} />
-            )}
-          </View>
-          <Text style={styles.checkboxLabel}>
-            I have read and agree to the Terms & Conditions
-          </Text>
-        </Pressable>
-
-        <Pressable 
-          style={[styles.acceptButton, !isChecked && styles.acceptButtonDisabled]}
+          style={styles.acceptButton}
           onPress={handleAccept}
-          disabled={!isChecked}
         >
-          <Text style={[styles.acceptButtonText, !isChecked && styles.acceptButtonTextDisabled]}>
+          <Text style={styles.acceptButtonText}>
             Accept & Continue
           </Text>
           <IconSymbol 
             name="arrow.right.circle.fill" 
-            color={isChecked ? colors.card : colors.textSecondary} 
+            color={colors.card} 
             size={24} 
           />
         </Pressable>
@@ -211,33 +190,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 2,
     borderTopColor: colors.accent,
-    gap: 16,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.accent,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  checkboxLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-    lineHeight: 20,
   },
   acceptButton: {
     backgroundColor: colors.primary,
@@ -251,17 +203,9 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.3)',
     elevation: 4,
   },
-  acceptButtonDisabled: {
-    backgroundColor: colors.highlight,
-    boxShadow: 'none',
-    elevation: 0,
-  },
   acceptButtonText: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.card,
-  },
-  acceptButtonTextDisabled: {
-    color: colors.textSecondary,
   },
 });
