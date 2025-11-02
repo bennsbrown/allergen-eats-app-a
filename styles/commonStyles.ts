@@ -92,9 +92,9 @@ export const commonStyles = StyleSheet.create({
     tintColor: colors.primary,
   },
   logoImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
+    width: 200,
+    height: 200,
+    borderRadius: 0,
     marginBottom: 8,
   },
 });

@@ -147,7 +147,7 @@ export default function ProfileScreen() {
           {/* Header with Logo */}
           <View style={styles.header}>
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop' }}
+              source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
               style={styles.logo}
               resizeMode="contain"
             />
