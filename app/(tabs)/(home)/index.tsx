@@ -1,5 +1,8 @@
 
 import React, { useState } from 'react';
+import Animated, { 
+  FadeInDown,
+} from 'react-native-reanimated';
 import { Stack, router } from 'expo-router';
 import {
   ScrollView,
@@ -12,12 +15,9 @@ import {
   Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
-import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
-import Animated, { 
-  FadeInDown,
-} from 'react-native-reanimated';
+import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
+import { colors } from '@/styles/commonStyles';
 
 export default function HomeScreen() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -326,18 +326,36 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 16,
-    boxShadow: '0px 4px 16px rgba(59, 130, 246, 0.2)',
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   welcomeSection: {
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.15)',
-    elevation: 3,
     borderWidth: 1,
     borderColor: colors.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   welcomeTitle: {
     fontSize: 28,
@@ -361,8 +379,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(59, 130, 246, 0.1)',
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   searchInput: {
     flex: 1,
@@ -377,8 +404,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.2)',
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   filtersSection: {
     marginBottom: 20,
@@ -410,14 +446,32 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1.5,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 4px rgba(59, 130, 246, 0.1)',
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   filterChipSelected: {
     backgroundColor: colors.secondary,
     borderColor: colors.secondary,
-    boxShadow: '0px 4px 8px rgba(30, 64, 175, 0.3)',
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   filterChipText: {
     fontSize: 13,
@@ -459,8 +513,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(59, 130, 246, 0.1)',
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   menuCardContent: {
     gap: 10,
@@ -540,8 +603,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(30, 64, 175, 0.3)',
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   infoTitle: {
     fontSize: 18,
@@ -573,7 +645,6 @@ const styles = StyleSheet.create({
   headerButtonContainer: {
     padding: 6,
   },
-  // Terms & Conditions Button
   termsButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -585,8 +656,17 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(59, 130, 246, 0.15)',
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   termsButtonText: {
     fontSize: 16,

@@ -104,7 +104,7 @@ export default function TermsAcceptanceScreen() {
           onPress={handleAccept}
         >
           <Text style={styles.acceptButtonText}>
-            Accept & Continue
+            Close
           </Text>
           <IconSymbol 
             name="arrow.right.circle.fill" 
