@@ -91,4 +91,10 @@ export const commonStyles = StyleSheet.create({
     height: 60,
     tintColor: colors.primary,
   },
+	  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
 });

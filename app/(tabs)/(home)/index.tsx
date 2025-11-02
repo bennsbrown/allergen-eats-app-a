@@ -12,6 +12,7 @@ import {
   Text,
   Platform,
   TextInput,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
@@ -74,13 +75,16 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section - Text-based logo */}
+          {/* Logo Section - Image logo */}
           <View style={styles.logoContainer}>
             <View style={styles.logoBox}>
-              <IconSymbol name="leaf.fill" color={colors.primary} size={48} />
-              <Text style={styles.logoText}>AllergenMenu</Text>
+              <Image
+                source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
-          </View>
+          </View>  
 
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
@@ -340,12 +344,9 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 8,
-    letterSpacing: 0.5,
+  logoImage: {
+    width: 180,
+    height: 80,
   },
   welcomeSection: {
     backgroundColor: colors.card,
