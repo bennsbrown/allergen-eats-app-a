@@ -165,16 +165,6 @@ export default function ProfileScreen() {
             <Text style={styles.cardDescription}>
               Share this QR code with your customers. They can scan it to view your allergen-friendly menu.
             </Text>
-            
-            {/* Logo above QR Code */}
-            <View style={styles.qrLogoAboveContainer}>
-              <Image
-                source={require('@/assets/images/499d614b-c3dc-40a7-9ddd-6a461469ccbc.jpeg')}
-                style={styles.qrLogoAbove}
-                resizeMode="contain"
-              />
-            </View>
-
             <View style={styles.qrCodeContainer}>
               <View style={styles.qrCodeBrandWrapper}>
                 <View style={styles.qrCodeLogoContainer}>
@@ -526,17 +516,6 @@ const styles = StyleSheet.create({
     boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
     elevation: 3,
     alignItems: 'center',
-  },
-  qrLogoAboveContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  qrLogoAbove: {
-    width: 100,
-    height: 100,
-    borderRadius: 16,
-    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.25)',
-    elevation: 4,
   },
   qrCodeContainer: {
     alignItems: 'center',
