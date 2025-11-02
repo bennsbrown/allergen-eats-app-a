@@ -166,17 +166,26 @@ export default function ProfileScreen() {
               Share this QR code with your customers. They can scan it to view your allergen-friendly menu.
             </Text>
             <View style={styles.qrCodeContainer}>
-              <View style={styles.qrCodeWrapper}>
-                <QRCode
-                  value={generateMenuUrl()}
-                  size={200}
-                  color={colors.text}
-                  backgroundColor={colors.card}
-                  logo={require('@/assets/images/final_quest_240x240.png')}
-                  logoSize={40}
-                  logoBackgroundColor={colors.card}
-                  logoMargin={2}
-                />
+              <View style={styles.qrCodeBrandWrapper}>
+                <View style={styles.qrCodeLogoContainer}>
+                  <Image
+                    source={require('@/assets/images/final_quest_240x240.png')}
+                    style={styles.qrCodeLogo}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.qrCodeWrapper}>
+                  <QRCode
+                    value={generateMenuUrl()}
+                    size={220}
+                    color={colors.primary}
+                    backgroundColor="#FFFFFF"
+                    quietZone={10}
+                  />
+                </View>
+                <View style={styles.qrCodeBrandFooter}>
+                  <Text style={styles.qrCodeBrandText}>Scan to view menu</Text>
+                </View>
               </View>
               <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
             </View>
@@ -309,12 +318,6 @@ export default function ProfileScreen() {
                   <Text style={styles.columnBold}>Allergens:</Text> Comma-separated (nuts, gluten, dairy, etc.)
                 </Text>
               </View>
-              <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
-                <Text style={styles.columnText}>
-                  <Text style={styles.columnBold}>Price:</Text> Numeric value
-                </Text>
-              </View>
             </View>
           </View>
 
@@ -346,7 +349,7 @@ export default function ProfileScreen() {
 
           {/* About Card */}
           <View style={styles.aboutCard}>
-            <Text style={styles.aboutTitle}>About Allergen Menu</Text>
+            <Text style={styles.aboutTitle}>About Eaze</Text>
             <Text style={styles.aboutText}>
               This app helps restaurants digitalize their allergen information, making it easy for customers to find dishes that match their dietary needs.
             </Text>
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 8px 24px rgba(255, 107, 107, 0.3)',
+    boxShadow: '0px 8px 24px rgba(56, 189, 248, 0.3)',
     elevation: 8,
   },
   loginTitle: {
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
     padding: 18,
     width: '100%',
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.4)',
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.4)',
     elevation: 4,
   },
   loginButtonText: {
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 20,
     marginBottom: 16,
-    boxShadow: '0px 4px 16px rgba(255, 107, 107, 0.3)',
+    boxShadow: '0px 4px 16px rgba(56, 189, 248, 0.3)',
     elevation: 6,
   },
   headerTitle: {
@@ -494,7 +497,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 16,
     gap: 8,
-    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
+    boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
   },
   logoutButtonText: {
@@ -510,27 +513,70 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
+    boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
     elevation: 3,
     alignItems: 'center',
   },
   qrCodeContainer: {
     alignItems: 'center',
     marginVertical: 20,
+    width: '100%',
+  },
+  qrCodeBrandWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.primary,
+    boxShadow: '0px 8px 24px rgba(56, 189, 248, 0.25)',
+    elevation: 8,
+    width: '100%',
+    maxWidth: 320,
+  },
+  qrCodeLogoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: colors.highlight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.2)',
+    elevation: 4,
+  },
+  qrCodeLogo: {
+    width: 60,
+    height: 60,
   },
   qrCodeWrapper: {
-    padding: 20,
-    backgroundColor: colors.card,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 2px 8px rgba(255, 107, 107, 0.2)',
-    elevation: 2,
+  },
+  qrCodeBrandFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: colors.accent,
+    width: '100%',
+    alignItems: 'center',
+  },
+  qrCodeBrandText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   qrCodeUrl: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 12,
+    marginTop: 16,
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -548,7 +594,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 8,
-    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
+    boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
   },
   qrActionButtonSecondary: {
@@ -583,7 +629,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: colors.accent,
-    boxShadow: '0px 3px 10px rgba(255, 107, 107, 0.15)',
+    boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
     elevation: 3,
   },
   cardHeader: {
@@ -632,7 +678,7 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(255, 107, 107, 0.3)',
+    boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
   },
   saveButtonText: {
@@ -649,7 +695,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(190, 22, 34, 0.3)',
+    boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
   },
   connectButtonText: {
@@ -662,7 +708,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
-    boxShadow: '0px 4px 12px rgba(255, 107, 107, 0.3)',
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.3)',
     elevation: 4,
   },
   instructionText: {
@@ -728,7 +774,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    boxShadow: '0px 4px 12px rgba(190, 22, 34, 0.3)',
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.3)',
     elevation: 4,
   },
   aboutTitle: {
