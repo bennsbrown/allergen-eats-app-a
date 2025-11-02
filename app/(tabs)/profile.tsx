@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 
 export default function ProfileScreen() {
@@ -68,6 +68,11 @@ export default function ProfileScreen() {
   const generateMenuUrl = () => {
     // In production, this would be your actual app URL with business ID
     return `https://yourapp.com/menu/${businessCode}`;
+  };
+
+  const handleNavigateToTerms = () => {
+    console.log('Navigating to Terms & Conditions');
+    router.push('/terms-acceptance');
   };
 
   // Login Screen
@@ -355,6 +360,13 @@ export default function ProfileScreen() {
             </Text>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
+
+          {/* Terms & Conditions Button */}
+          <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+            <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+            <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+            <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -796,5 +808,26 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.7,
     fontWeight: '600',
+  },
+  // Terms & Conditions Button
+  termsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
+    elevation: 3,
+  },
+  termsButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    flex: 1,
   },
 });
