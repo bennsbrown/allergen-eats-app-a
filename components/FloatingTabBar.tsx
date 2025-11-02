@@ -53,7 +53,7 @@ const TabItem = ({ tab, isActive, onPress }: TabItemProps) => {
   React.useEffect(() => {
     scale.value = withSpring(isActive ? 1.05 : 1);
     opacity.value = withSpring(isActive ? 1 : 0.6);
-  }, [isActive]);
+  }, [isActive, scale, opacity]);
 
   return (
     <TouchableOpacity
