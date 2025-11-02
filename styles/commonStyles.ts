@@ -7,13 +7,13 @@ text: '#1A1A1A',
 textSecondary: '#0C4A6E',
 primary: '#38BDF8',
 primaryDark: '#0284C7',
-secondary: '#38BDF8',
+secondary: '#1E40AF',
 accent: '#BAE6FD',
 card: '#FFFFFF',
 highlight: '#F0F9FF',
 success: '#16A34A',
-warning: '#38BDF8',
-danger: '#38BDF8',
+warning: '#F59E0B',
+danger: '#EF4444',
 };
 
 export const buttonStyles = StyleSheet.create({
