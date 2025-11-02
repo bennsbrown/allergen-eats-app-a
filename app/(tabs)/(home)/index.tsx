@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import {
   ScrollView,
   Pressable,
@@ -48,6 +48,11 @@ export default function HomeScreen() {
       <IconSymbol name="info.circle" color={colors.primary} />
     </Pressable>
   );
+
+  const handleNavigateToTerms = () => {
+    console.log('Navigating to Terms & Conditions from customer dashboard');
+    router.push('/terms-acceptance');
+  };
 
   const allFilters = [...DIETARY_NEEDS_FILTERS, ...PREFERENCES_FILTERS];
 
@@ -283,6 +288,13 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
+
+          {/* Terms & Conditions Button */}
+          <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+            <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+            <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+            <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+          </Pressable>
         </ScrollView>
       </View>
     </>
@@ -560,5 +572,26 @@ const styles = StyleSheet.create({
   },
   headerButtonContainer: {
     padding: 6,
+  },
+  // Terms & Conditions Button
+  termsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    boxShadow: '0px 3px 10px rgba(59, 130, 246, 0.15)',
+    elevation: 3,
+  },
+  termsButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    flex: 1,
   },
 });
