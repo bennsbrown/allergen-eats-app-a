@@ -2,18 +2,18 @@
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 export const colors = {
-background: '#FFFFFF',
-text: '#1A1A1A',
-textSecondary: '#0C4A6E',
-primary: '#38BDF8',
-primaryDark: '#0284C7',
-secondary: '#38BDF8',
-accent: '#BAE6FD',
-card: '#FFFFFF',
-highlight: '#F0F9FF',
-success: '#16A34A',
-warning: '#38BDF8',
-danger: '#38BDF8',
+background: '#FFFFFF',   // Very light sky blue background
+text: '#1A1A1A',         // Dark text for strong readability
+textSecondary: '#0C4A6E',// Deep teal-blue for secondary text
+primary: '#38BDF8',      // Bright sky blue (main action colour)
+primaryDark: '#0284C7',  // Bold vivid blue for hover/active states
+secondary: '#0EA5E9',    // Clear bright blue secondary tone
+accent: '#BAE6FD',       // Soft pastel blue accent
+card: '#FFFFFF',         // White card surface
+highlight: '#E0F2FE',    // Light icy blue highlight
+success: '#10B981',      // Green for success
+warning: '#F59E0B',      // Warm amber for warnings
+danger: '#EF4444',       // Bright red for errors
 };
 
 export const buttonStyles = StyleSheet.create({

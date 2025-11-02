@@ -8,6 +8,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -35,6 +36,12 @@ export default function TermsAcceptanceScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
+        {/* Logo in header */}
+        <Image
+          source={require('@/assets/images/499d614b-c3dc-40a7-9ddd-6a461469ccbc.jpeg')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
         <View style={styles.logoContainer}>
           <IconSymbol name="checkmark.shield.fill" color={colors.primary} size={64} />
         </View>
@@ -151,6 +158,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 2,
     borderBottomColor: colors.accent,
+  },
+  headerLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginBottom: 12,
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.25)',
+    elevation: 4,
   },
   logoContainer: {
     marginBottom: 16,

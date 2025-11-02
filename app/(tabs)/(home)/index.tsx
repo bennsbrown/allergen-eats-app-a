@@ -49,6 +49,14 @@ export default function HomeScreen() {
     </Pressable>
   );
 
+  const renderHeaderTitle = () => (
+    <Image
+      source={require('@/assets/images/499d614b-c3dc-40a7-9ddd-6a461469ccbc.jpeg')}
+      style={styles.headerLogo}
+      resizeMode="contain"
+    />
+  );
+
   const allFilters = [...DIETARY_NEEDS_FILTERS, ...PREFERENCES_FILTERS];
 
   return (
@@ -56,7 +64,7 @@ export default function HomeScreen() {
       {Platform.OS === 'ios' && (
         <Stack.Screen
           options={{
-            title: 'Allergen Menu',
+            headerTitle: renderHeaderTitle,
             headerRight: renderHeaderRight,
           }}
         />
@@ -304,6 +312,14 @@ const styles = StyleSheet.create({
   },
   scrollContentWithTabBar: {
     paddingBottom: 100,
+  },
+  headerLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  headerButtonContainer: {
+    padding: 6,
   },
   logoContainer: {
     alignItems: 'center',
@@ -557,8 +573,5 @@ const styles = StyleSheet.create({
     color: colors.card,
     lineHeight: 20,
     fontWeight: '500',
-  },
-  headerButtonContainer: {
-    padding: 6,
   },
 });
