@@ -144,13 +144,18 @@ export default function ProfileScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with Logo */}
+          {/* Header with Logo - Matching customer section style */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBox}>
+              <Image
+                source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+
           <View style={styles.header}>
-            <Image
-              source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
             <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
               Manage your allergen menu configuration
@@ -383,11 +388,41 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 16,
   },
   scrollContentWithTabBar: {
     paddingBottom: 100,
+  },
+  // Logo Container - Matching customer section style
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  logoBox: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  logoImage: {
+    width: 180,
+    height: 80,
   },
   // Login Screen Styles
   loginContainer: {
@@ -478,21 +513,12 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 24,
-    paddingVertical: 20,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 20,
-    marginBottom: 16,
-    boxShadow: '0px 4px 16px rgba(56, 189, 248, 0.3)',
-    elevation: 6,
+    paddingVertical: 12,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
-    marginTop: 12,
   },
   headerSubtitle: {
     fontSize: 15,
