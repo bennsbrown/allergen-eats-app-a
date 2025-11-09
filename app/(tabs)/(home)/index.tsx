@@ -92,7 +92,15 @@ export default function HomeScreen() {
             />
           </View>  
 
-          {/* Search Bar */}
+          {/* Welcome Section */}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeTitle}>Welcome!</Text>
+            <Text style={styles.welcomeText}>
+              Find dishes that match your dietary needs. Select your preferences below.
+            </Text>
+          </View>
+
+          {/* Search Bar - Positioned AFTER Welcome Section */}
           <View style={styles.searchContainer}>
             <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
             <TextInput
@@ -108,14 +116,6 @@ export default function HomeScreen() {
                 <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
               </Pressable>
             )}
-          </View>
-
-          {/* Welcome Section */}
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome!</Text>
-            <Text style={styles.welcomeText}>
-              Find dishes that match your dietary needs. Select your preferences below.
-            </Text>
           </View>
 
           {/* Preferences Filter Section */}
@@ -338,35 +338,6 @@ const styles = StyleSheet.create({
     width: 240,
     height: 100,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-    fontWeight: '600',
-  },
   welcomeSection: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -397,6 +368,35 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 22,
     fontWeight: '500',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '600',
   },
   preferencesBox: {
     backgroundColor: colors.highlight,
