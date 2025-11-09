@@ -11,88 +11,55 @@ import {
   TextInput,
   Alert,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { useAuth } from '@/hooks/useAuth';
-import { useBusiness } from '@/hooks/useBusiness';
 
 export default function ProfileScreen() {
-  const { user, loading: authLoading, signIn, signUp, signOut, isConfigured } = useAuth();
-  const { business, loading: businessLoading, updateGoogleSheetUrl } = useBusiness();
-  
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [businessName, setBusinessName] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [businessCode, setBusinessCode] = useState('DEMO2024');
 
-  const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
-    }
+  // Simple login - in production, this would validate against a backend
+  const VALID_CODE = 'DEMO2024';
 
-    if (authMode === 'signup' && !businessName) {
-      Alert.alert('Error', 'Please enter your business name');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      if (authMode === 'login') {
-        await signIn(email, password);
-        Alert.alert('Success', 'Welcome back!');
-        console.log('Login successful');
-      } else {
-        await signUp(email, password, businessName);
-        Alert.alert(
-          'Success', 
-          'Account created! Please check your email to verify your account.'
-        );
-        console.log('Signup successful');
-      }
-    } catch (error: any) {
-      console.error('Auth error:', error);
-      Alert.alert('Error', error.message || 'Authentication failed');
-    } finally {
-      setIsSubmitting(false);
+  const handleLogin = () => {
+    if (loginCode.trim().toUpperCase() === VALID_CODE) {
+      setIsLoggedIn(true);
+      Alert.alert('Success', 'Welcome to your business dashboard!');
+      console.log('Business login successful');
+    } else {
+      Alert.alert('Invalid Code', 'Please enter a valid business access code.');
+      console.log('Login failed with code:', loginCode);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      Alert.alert('Logged Out', 'You have been logged out successfully.');
-      console.log('Logout successful');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', error.message || 'Logout failed');
-    }
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoginCode('');
+    Alert.alert('Logged Out', 'You have been logged out of the business section.');
+    console.log('Business logout');
   };
 
-  const handleConnectSheet = async () => {
+  const handleConnectSheet = () => {
     if (!googleSheetUrl) {
       Alert.alert('Error', 'Please enter a Google Sheet URL');
       return;
     }
+    Alert.alert(
+      'Connect Google Sheet',
+      'In production, this would connect to your Google Sheet and import menu data. For now, we are using sample data.',
+      [{ text: 'OK' }]
+    );
+    console.log('Connecting to Google Sheet:', googleSheetUrl);
+  };
 
-    try {
-      await updateGoogleSheetUrl(googleSheetUrl);
-      Alert.alert(
-        'Success',
-        'Google Sheet connected! Your QR code now links to this sheet.',
-        [{ text: 'OK' }]
-      );
-      console.log('Connected Google Sheet:', googleSheetUrl);
-    } catch (error: any) {
-      console.error('Connect sheet error:', error);
-      Alert.alert('Error', error.message || 'Failed to connect Google Sheet');
-    }
+  const generateMenuUrl = () => {
+    // In production, this would be your actual app URL with business ID
+    return `https://yourapp.com/menu/${businessCode}`;
   };
 
   const handleNavigateToTerms = () => {
@@ -100,8 +67,8 @@ export default function ProfileScreen() {
     router.push('/terms-acceptance');
   };
 
-  // Show setup message if Supabase is not configured
-  if (!isConfigured) {
+  // Login Screen
+  if (!isLoggedIn) {
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -112,192 +79,39 @@ export default function ProfileScreen() {
           />
         )}
         <SafeAreaView style={styles.container} edges={['top']}>
-          <View style={styles.setupContainer}>
-            <View style={styles.setupCard}>
-              <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={64} />
-              <Text style={styles.setupTitle}>Supabase Setup Required</Text>
-              <Text style={styles.setupText}>
-                To enable business authentication and unique QR codes, please:
+          <View style={styles.loginContainer}>
+            <View style={styles.loginCard}>
+              <IconSymbol name="lock.fill" color={colors.primary} size={64} />
+              <Text style={styles.loginTitle}>Business Access</Text>
+              <Text style={styles.loginSubtitle}>
+                Enter your unique business code to access the dashboard
               </Text>
-              <View style={styles.setupSteps}>
-                <View style={styles.setupStep}>
-                  <Text style={styles.setupStepNumber}>1</Text>
-                  <Text style={styles.setupStepText}>
-                    Click the Supabase button in Natively
-                  </Text>
-                </View>
-                <View style={styles.setupStep}>
-                  <Text style={styles.setupStepNumber}>2</Text>
-                  <Text style={styles.setupStepText}>
-                    Connect to your Supabase project (or create one)
-                  </Text>
-                </View>
-                <View style={styles.setupStep}>
-                  <Text style={styles.setupStepNumber}>3</Text>
-                  <Text style={styles.setupStepText}>
-                    Run the database setup SQL (provided below)
-                  </Text>
-                </View>
+              
+              <View style={styles.loginInputContainer}>
+                <TextInput
+                  style={styles.loginInput}
+                  value={loginCode}
+                  onChangeText={setLoginCode}
+                  placeholder="Enter business code"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  secureTextEntry={false}
+                />
               </View>
-              <View style={styles.sqlCard}>
-                <Text style={styles.sqlTitle}>Database Setup SQL:</Text>
-                <Text style={styles.sqlCode}>
-                  {`-- Create businesses table
-CREATE TABLE businesses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  business_name TEXT NOT NULL,
-  google_sheet_url TEXT,
-  qr_code_data TEXT NOT NULL,
-  UNIQUE(user_id)
-);
 
--- Enable RLS
-ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
+              <Pressable style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Access Dashboard</Text>
+              </Pressable>
 
--- Policies
-CREATE POLICY "Users can view own business"
-  ON businesses FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own business"
-  ON businesses FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own business"
-  ON businesses FOR UPDATE
-  USING (auth.uid() = user_id);`}
+              <View style={styles.loginHintCard}>
+                <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
+                <Text style={styles.loginHintText}>
+                  Demo code: <Text style={styles.loginHintCode}>DEMO2024</Text>
                 </Text>
               </View>
             </View>
           </View>
-        </SafeAreaView>
-      </>
-    );
-  }
-
-  // Show loading state
-  if (authLoading || businessLoading) {
-    return (
-      <>
-        {Platform.OS === 'ios' && (
-          <Stack.Screen
-            options={{
-              title: 'Business',
-            }}
-          />
-        )}
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        </SafeAreaView>
-      </>
-    );
-  }
-
-  // Login/Signup Screen
-  if (!user) {
-    return (
-      <>
-        {Platform.OS === 'ios' && (
-          <Stack.Screen
-            options={{
-              title: 'Business',
-            }}
-          />
-        )}
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.loginScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.loginContainer}>
-              <View style={styles.loginCard}>
-                <IconSymbol name="lock.fill" color={colors.primary} size={64} />
-                <Text style={styles.loginTitle}>
-                  {authMode === 'login' ? 'Business Login' : 'Create Business Account'}
-                </Text>
-                <Text style={styles.loginSubtitle}>
-                  {authMode === 'login' 
-                    ? 'Sign in to access your dashboard and QR code'
-                    : 'Sign up to get your unique QR code'}
-                </Text>
-                
-                {authMode === 'signup' && (
-                  <View style={styles.loginInputContainer}>
-                    <Text style={styles.inputLabel}>Business Name</Text>
-                    <TextInput
-                      style={styles.loginInput}
-                      value={businessName}
-                      onChangeText={setBusinessName}
-                      placeholder="Enter your business name"
-                      placeholderTextColor={colors.textSecondary}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                    />
-                  </View>
-                )}
-
-                <View style={styles.loginInputContainer}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    style={styles.loginInput}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="your@email.com"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <View style={styles.loginInputContainer}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <TextInput
-                    style={styles.loginInput}
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Enter password"
-                    placeholderTextColor={colors.textSecondary}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-
-                <Pressable 
-                  style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]} 
-                  onPress={handleAuth}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator color={colors.card} />
-                  ) : (
-                    <Text style={styles.loginButtonText}>
-                      {authMode === 'login' ? 'Sign In' : 'Create Account'}
-                    </Text>
-                  )}
-                </Pressable>
-
-                <Pressable 
-                  style={styles.switchModeButton}
-                  onPress={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                >
-                  <Text style={styles.switchModeText}>
-                    {authMode === 'login' 
-                      ? "Don't have an account? Sign up" 
-                      : 'Already have an account? Sign in'}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </ScrollView>
         </SafeAreaView>
       </>
     );
@@ -322,7 +136,7 @@ CREATE POLICY "Users can update own business"
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header with Logo */}
+          {/* Header with Logo - No box, matching customer section */}
           <View style={styles.logoContainer}>
             <Image
               source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
@@ -334,9 +148,8 @@ CREATE POLICY "Users can update own business"
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
-              {business?.business_name || 'Your Business'}
+              Manage your allergen menu configuration
             </Text>
-            <Text style={styles.headerEmail}>{user.email}</Text>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
               <Text style={styles.logoutButtonText}>Logout</Text>
@@ -347,13 +160,10 @@ CREATE POLICY "Users can update own business"
           <View style={styles.qrCard}>
             <View style={styles.cardHeader}>
               <IconSymbol name="qrcode" color={colors.primary} size={24} />
-              <Text style={styles.cardTitle}>Your Unique QR Code</Text>
+              <Text style={styles.cardTitle}>Customer Menu QR Code</Text>
             </View>
             <Text style={styles.cardDescription}>
-              This QR code is unique to your business and links to your Google Sheet menu.
-              {business?.google_sheet_url 
-                ? ' Customers scanning this will see your menu data.'
-                : ' Connect a Google Sheet below to activate it.'}
+              Share this QR code with your customers. They can scan it to view your allergen-friendly menu.
             </Text>
             <View style={styles.qrCodeContainer}>
               <View style={styles.qrCodeBrandWrapper}>
@@ -366,7 +176,7 @@ CREATE POLICY "Users can update own business"
                 </View>
                 <View style={styles.qrCodeWrapper}>
                   <QRCode
-                    value={business?.qr_code_data || `https://yourapp.com/menu/${user.id}`}
+                    value={generateMenuUrl()}
                     size={220}
                     color={colors.primary}
                     backgroundColor="#FFFFFF"
@@ -377,9 +187,7 @@ CREATE POLICY "Users can update own business"
                   <Text style={styles.qrCodeBrandText}>Scan to view menu</Text>
                 </View>
               </View>
-              <Text style={styles.qrCodeUrl}>
-                {business?.qr_code_data || `https://yourapp.com/menu/${user.id}`}
-              </Text>
+              <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
             </View>
             <View style={styles.qrActionsContainer}>
               <Pressable 
@@ -405,30 +213,34 @@ CREATE POLICY "Users can update own business"
             </View>
           </View>
 
+          {/* Business Code Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="key.fill" color={colors.secondary} size={24} />
+              <Text style={styles.cardTitle}>Your Business Code</Text>
+            </View>
+            <View style={styles.businessCodeDisplay}>
+              <Text style={styles.businessCodeText}>{businessCode}</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Keep this code secure. You&apos;ll need it to access the business dashboard.
+            </Text>
+          </View>
+
           {/* Google Sheets Integration Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <IconSymbol name="doc.text.fill" color={colors.secondary} size={24} />
               <Text style={styles.cardTitle}>Google Sheets Integration</Text>
             </View>
-            {business?.google_sheet_url ? (
-              <View style={styles.connectedSheetCard}>
-                <IconSymbol name="checkmark.circle.fill" color={colors.primary} size={32} />
-                <Text style={styles.connectedSheetTitle}>Sheet Connected!</Text>
-                <Text style={styles.connectedSheetUrl} numberOfLines={2}>
-                  {business.google_sheet_url}
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.cardDescription}>
-                Connect your Google Sheet to link it with your QR code. Customers will access your menu data when they scan.
-              </Text>
-            )}
+            <Text style={styles.cardDescription}>
+              Connect your Google Sheet to automatically import and update your menu items and allergen information.
+            </Text>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Google Sheet URL</Text>
               <TextInput
                 style={styles.input}
-                value={googleSheetUrl || business?.google_sheet_url || ''}
+                value={googleSheetUrl}
                 onChangeText={setGoogleSheetUrl}
                 placeholder="https://docs.google.com/spreadsheets/d/..."
                 placeholderTextColor={colors.textSecondary}
@@ -438,9 +250,7 @@ CREATE POLICY "Users can update own business"
             </View>
             <Pressable style={styles.connectButton} onPress={handleConnectSheet}>
               <IconSymbol name="link" color={colors.card} size={20} />
-              <Text style={styles.connectButtonText}>
-                {business?.google_sheet_url ? 'Update Sheet' : 'Connect Sheet'}
-              </Text>
+              <Text style={styles.connectButtonText}>Connect Sheet</Text>
             </Pressable>
           </View>
 
@@ -481,29 +291,29 @@ CREATE POLICY "Users can update own business"
             </View>
           </View>
 
-          {/* Business Info Card */}
+          {/* Stats Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="building.2.fill" color={colors.primary} size={24} />
-              <Text style={styles.cardTitle}>Business Information</Text>
+              <IconSymbol name="chart.bar.fill" color={colors.primary} size={24} />
+              <Text style={styles.cardTitle}>Menu Statistics</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Business Name:</Text>
-              <Text style={styles.infoValue}>{business?.business_name || 'Not set'}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Business ID:</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>
-                {business?.id || user.id}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Account Created:</Text>
-              <Text style={styles.infoValue}>
-                {business?.created_at 
-                  ? new Date(business.created_at).toLocaleDateString()
-                  : 'N/A'}
-              </Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statLabel}>Total Dishes</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>8</Text>
+                <Text style={styles.statLabel}>Allergen Types</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>4</Text>
+                <Text style={styles.statLabel}>Categories</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>3</Text>
+                <Text style={styles.statLabel}>Vegan Options</Text>
+              </View>
             </View>
           </View>
 
@@ -544,13 +354,7 @@ const styles = StyleSheet.create({
   scrollContentWithTabBar: {
     paddingBottom: 100,
   },
-  loginScrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  // Logo Container
+  // Logo Container - No box, matching customer section
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -560,106 +364,12 @@ const styles = StyleSheet.create({
     width: 240,
     height: 100,
   },
-  // Setup Screen
-  setupContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  setupCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 32,
-    width: '100%',
-    maxWidth: 500,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.accent,
-    boxShadow: '0px 8px 24px rgba(56, 189, 248, 0.3)',
-    elevation: 8,
-  },
-  setupTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: 20,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  setupText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-  setupSteps: {
-    width: '100%',
-    gap: 16,
-    marginBottom: 24,
-  },
-  setupStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  setupStepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    color: colors.card,
-    fontSize: 18,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  setupStepText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-    fontWeight: '600',
-    lineHeight: 32,
-  },
-  sqlCard: {
-    width: '100%',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: colors.accent,
-  },
-  sqlTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  sqlCode: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    lineHeight: 16,
-  },
-  // Loading State
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
   // Login Screen Styles
   loginContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   loginCard: {
     backgroundColor: colors.card,
@@ -679,7 +389,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 20,
     marginBottom: 8,
-    textAlign: 'center',
   },
   loginSubtitle: {
     fontSize: 16,
@@ -691,22 +400,19 @@ const styles = StyleSheet.create({
   },
   loginInputContainer: {
     width: '100%',
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
+    marginBottom: 20,
   },
   loginInput: {
     backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    borderRadius: 16,
+    padding: 18,
+    fontSize: 18,
     color: colors.text,
     borderWidth: 2,
     borderColor: colors.accent,
+    textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 2,
   },
   loginButton: {
     backgroundColor: colors.primary,
@@ -716,25 +422,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.4)',
     elevation: 4,
-    marginTop: 8,
-  },
-  loginButtonDisabled: {
-    opacity: 0.6,
   },
   loginButtonText: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.card,
   },
-  switchModeButton: {
-    marginTop: 20,
-    padding: 8,
+  loginHintCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 24,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
-  switchModeText: {
+  loginHintText: {
     fontSize: 14,
-    color: colors.primary,
-    fontWeight: '700',
-    textAlign: 'center',
+    color: colors.text,
+    fontWeight: '600',
+  },
+  loginHintCode: {
+    fontWeight: '800',
+    color: colors.secondary,
+    letterSpacing: 1,
   },
   // Dashboard Styles
   header: {
@@ -748,15 +461,9 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   headerSubtitle: {
-    fontSize: 18,
-    color: colors.text,
-    marginTop: 6,
-    fontWeight: '700',
-  },
-  headerEmail: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: 6,
     fontWeight: '500',
   },
   logoutButton: {
@@ -868,27 +575,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.card,
   },
-  // Connected Sheet Card
-  connectedSheetCard: {
+  // Business Code Card
+  businessCodeDisplay: {
     backgroundColor: colors.highlight,
     borderRadius: 12,
     padding: 20,
-    marginBottom: 16,
+    marginVertical: 12,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: colors.accent,
-    gap: 8,
   },
-  connectedSheetTitle: {
-    fontSize: 18,
+  businessCodeText: {
+    fontSize: 32,
     fontWeight: '800',
     color: colors.primary,
-  },
-  connectedSheetUrl: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    fontWeight: '600',
+    letterSpacing: 4,
   },
   // Common Card Styles
   card: {
@@ -922,6 +623,12 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 12,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
   },
   input: {
     backgroundColor: colors.background,
@@ -987,27 +694,32 @@ const styles = StyleSheet.create({
   columnBold: {
     fontWeight: '800',
   },
-  // Business Info
-  infoRow: {
+  statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.accent,
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+  statItem: {
     flex: 1,
-    textAlign: 'right',
-    marginLeft: 12,
+    minWidth: '45%',
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: '700',
   },
   aboutCard: {
     backgroundColor: colors.secondary,
