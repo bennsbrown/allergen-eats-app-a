@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Animated, { 
   FadeInDown,
 } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import {
   Text,
   Platform,
   Image,
+  TextInput,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
@@ -20,8 +21,21 @@ import { colors } from '@/styles/commonStyles';
 
 export default function HomeScreen() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const { menuItems, loading } = useMenuData();
   const filteredItems = useFilteredMenu(menuItems, selectedFilters);
+
+  // Apply search filter on top of dietary filters
+  const searchFilteredItems = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredItems;
+    }
+    const query = searchQuery.toLowerCase();
+    return filteredItems.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query)
+    );
+  }, [filteredItems, searchQuery]);
 
   const toggleFilter = (filterId: string) => {
     setSelectedFilters(prev => {
@@ -77,6 +91,24 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
           </View>  
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search dishes..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
+              </Pressable>
+            )}
+          </View>
 
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
@@ -170,7 +202,7 @@ export default function HomeScreen() {
           {selectedFilters.length > 0 && (
             <View style={styles.activeFiltersSection}>
               <Text style={styles.activeFiltersText}>
-                Showing {filteredItems.length} dishes matching your filters:{' '}
+                Showing {searchFilteredItems.length} dishes matching your filters:{' '}
                 {selectedFilters
                   .map(id => allFilters.find(f => f.id === id)?.name)
                   .join(', ')}
@@ -184,24 +216,24 @@ export default function HomeScreen() {
           {/* Menu Items */}
           <View style={styles.menuSection}>
             <Text style={styles.sectionTitle}>
-              {selectedFilters.length > 0 ? 'Safe for You' : 'All Dishes'}
+              {selectedFilters.length > 0 ? 'Safe for You' : searchQuery ? 'Search Results' : 'All Dishes'}
             </Text>
             {loading ? (
               <View style={styles.loadingContainer}>
                 <Text style={styles.loadingText}>Loading menu...</Text>
               </View>
-            ) : filteredItems.length === 0 ? (
+            ) : searchFilteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
                 <Text style={styles.emptyText}>
-                  No dishes match your dietary requirements
+                  {searchQuery ? 'No dishes found matching your search' : 'No dishes match your dietary requirements'}
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Try adjusting your filters
+                  {searchQuery ? 'Try a different search term' : 'Try adjusting your filters'}
                 </Text>
               </View>
             ) : (
-              filteredItems.map((item, index) => (
+              searchFilteredItems.map((item, index) => (
                 <Animated.View
                   key={item.id}
                   entering={FadeInDown.delay(index * 50)}
@@ -239,23 +271,29 @@ export default function HomeScreen() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>1.</Text>
                 <Text style={styles.infoText}>
-                  Select dietary preferences like Vegan, Vegetarian, Halal, or Kosher
+                  Use the search bar to quickly find specific dishes
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>2.</Text>
                 <Text style={styles.infoText}>
-                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
+                  Select dietary preferences like Vegan, Vegetarian, Halal, or Kosher
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>3.</Text>
                 <Text style={styles.infoText}>
-                  Browse dishes that are safe for you
+                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
                 </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>4.</Text>
+                <Text style={styles.infoText}>
+                  Browse dishes that are safe for you
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoBullet}>5.</Text>
                 <Text style={styles.infoText}>
                   Each dish shows which allergens it contains
                 </Text>
@@ -299,6 +337,35 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 240,
     height: 100,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '600',
   },
   welcomeSection: {
     backgroundColor: colors.card,
