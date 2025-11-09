@@ -1,39 +1,57 @@
 
 import { useState, useEffect } from 'react';
-import { supabase, Business, isSupabaseConfigured } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './useAuth';
 
+export interface Business {
+  id: string;
+  created_at: string;
+  email: string;
+  business_name: string;
+  google_sheet_url: string | null;
+  qr_code_data: string;
+  user_id: string;
+}
+
+const BUSINESS_STORAGE_KEY = '@business_data';
+
 export function useBusiness() {
-  const { user, isConfigured } = useAuth();
+  const { user } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isConfigured || !user) {
+    if (!user) {
       setLoading(false);
       return;
     }
 
     fetchBusiness();
-  }, [user, isConfigured]);
+  }, [user]);
 
   const fetchBusiness = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching business:', error);
-        throw error;
+      const businessJson = await AsyncStorage.getItem(BUSINESS_STORAGE_KEY);
+      if (businessJson) {
+        const businessData = JSON.parse(businessJson);
+        console.log('Fetched business:', businessData);
+        setBusiness(businessData);
+      } else {
+        // Create default business data if none exists
+        const defaultBusiness: Business = {
+          id: user.id,
+          created_at: new Date().toISOString(),
+          email: user.email,
+          business_name: user.businessName || 'My Business',
+          google_sheet_url: null,
+          qr_code_data: `https://yourapp.com/menu/${user.id}`,
+          user_id: user.id,
+        };
+        await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(defaultBusiness));
+        setBusiness(defaultBusiness);
       }
-
-      console.log('Fetched business:', data);
-      setBusiness(data);
     } catch (error) {
       console.error('Error in fetchBusiness:', error);
     } finally {
@@ -45,18 +63,16 @@ export function useBusiness() {
     if (!user || !business) return;
 
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .update({ google_sheet_url: url })
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const updatedBusiness = {
+        ...business,
+        google_sheet_url: url,
+      };
 
-      if (error) throw error;
-
+      await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
+      
       console.log('Updated Google Sheet URL:', url);
-      setBusiness(data);
-      return data;
+      setBusiness(updatedBusiness);
+      return updatedBusiness;
     } catch (error) {
       console.error('Error updating Google Sheet URL:', error);
       throw error;
@@ -67,18 +83,16 @@ export function useBusiness() {
     if (!user || !business) return;
 
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .update({ business_name: name })
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const updatedBusiness = {
+        ...business,
+        business_name: name,
+      };
 
-      if (error) throw error;
-
+      await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
+      
       console.log('Updated business name:', name);
-      setBusiness(data);
-      return data;
+      setBusiness(updatedBusiness);
+      return updatedBusiness;
     } catch (error) {
       console.error('Error updating business name:', error);
       throw error;

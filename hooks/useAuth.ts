@@ -1,125 +1,121 @@
 
 import { useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export interface User {
+  id: string;
+  email: string;
+  businessName?: string;
+}
 
 export interface AuthState {
   user: User | null;
-  session: Session | null;
   loading: boolean;
-  isConfigured: boolean;
 }
+
+const AUTH_STORAGE_KEY = '@auth_user';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    session: null,
     loading: true,
-    isConfigured: isSupabaseConfigured(),
   });
 
   useEffect(() => {
-    if (!authState.isConfigured) {
-      setAuthState(prev => ({ ...prev, loading: false }));
-      return;
+    // Load user from storage on mount
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const userJson = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+      if (userJson) {
+        const user = JSON.parse(userJson);
+        console.log('Loaded user from storage:', user.email);
+        setAuthState({
+          user,
+          loading: false,
+        });
+      } else {
+        setAuthState({
+          user: null,
+          loading: false,
+        });
+      }
+    } catch (error) {
+      console.log('Error loading user:', error);
+      setAuthState({
+        user: null,
+        loading: false,
+      });
     }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
-      setAuthState({
-        user: session?.user ?? null,
-        session: session,
-        loading: false,
-        isConfigured: true,
-      });
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event, session?.user?.email);
-      setAuthState({
-        user: session?.user ?? null,
-        session: session,
-        loading: false,
-        isConfigured: true,
-      });
-    });
-
-    return () => subscription.unsubscribe();
-  }, [authState.isConfigured]);
+  };
 
   const signUp = async (email: string, password: string, businessName: string) => {
-    if (!authState.isConfigured) {
-      throw new Error('Supabase is not configured');
-    }
+    try {
+      // Simple local authentication - in production, this would call your backend
+      const user: User = {
+        id: Date.now().toString(),
+        email,
+        businessName,
+      };
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          business_name: businessName,
-        },
-      },
-    });
-
-    if (error) throw error;
-
-    // Create business record
-    if (data.user) {
-      const businessId = data.user.id;
-      const qrCodeData = `https://yourapp.com/menu/${businessId}`;
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
       
-      const { error: insertError } = await supabase
-        .from('businesses')
-        .insert({
-          user_id: data.user.id,
-          email: email,
-          business_name: businessName,
-          qr_code_data: qrCodeData,
-        });
+      setAuthState({
+        user,
+        loading: false,
+      });
 
-      if (insertError) {
-        console.error('Error creating business record:', insertError);
-        throw insertError;
-      }
+      console.log('User signed up:', email);
+      return { user };
+    } catch (error) {
+      console.log('Error signing up:', error);
+      throw error;
     }
-
-    return data;
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!authState.isConfigured) {
-      throw new Error('Supabase is not configured');
+    try {
+      // Simple local authentication - in production, this would validate against your backend
+      const user: User = {
+        id: Date.now().toString(),
+        email,
+      };
+
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+      
+      setAuthState({
+        user,
+        loading: false,
+      });
+
+      console.log('User signed in:', email);
+      return { user };
+    } catch (error) {
+      console.log('Error signing in:', error);
+      throw error;
     }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-    return data;
   };
 
   const signOut = async () => {
-    if (!authState.isConfigured) {
-      return;
+    try {
+      await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+      setAuthState({
+        user: null,
+        loading: false,
+      });
+      console.log('User signed out');
+    } catch (error) {
+      console.log('Error signing out:', error);
+      throw error;
     }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
   };
 
   const resetPassword = async (email: string) => {
-    if (!authState.isConfigured) {
-      throw new Error('Supabase is not configured');
-    }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
+    // Simple placeholder - in production, this would call your backend
+    console.log('Password reset requested for:', email);
+    return Promise.resolve();
   };
 
   return {
