@@ -90,6 +90,19 @@ export default function FloatingTabBar({
     router.push(route);
   };
 
+  // Determine which tab is active based on pathname
+  const getIsActive = (tabName: string) => {
+    console.log('Checking active tab:', tabName, 'pathname:', pathname);
+    
+    // For home tab, check if we're on the root or home route
+    if (tabName === '(home)') {
+      return pathname === '/' || pathname.includes('/(home)') || pathname === '/(tabs)/(home)/';
+    }
+    
+    // For other tabs, check if pathname includes the tab name
+    return pathname.includes(tabName);
+  };
+
   return (
     <SafeAreaView
       edges={['bottom']}
@@ -108,7 +121,7 @@ export default function FloatingTabBar({
         ]}
       >
         {tabs.map((tab) => {
-          const isActive = pathname.includes(tab.name);
+          const isActive = getIsActive(tab.name);
           return (
             <TabItem
               key={tab.name}

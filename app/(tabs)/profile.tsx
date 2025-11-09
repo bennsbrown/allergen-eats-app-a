@@ -20,9 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 export default function ProfileScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginCode, setLoginCode] = useState('');
-  const [restaurantName, setRestaurantName] = useState('My Restaurant');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   const [businessCode, setBusinessCode] = useState('DEMO2024');
 
   // Simple login - in production, this would validate against a backend
@@ -44,12 +42,6 @@ export default function ProfileScreen() {
     setLoginCode('');
     Alert.alert('Logged Out', 'You have been logged out of the business section.');
     console.log('Business logout');
-  };
-
-  const handleSaveSettings = () => {
-    setIsEditing(false);
-    Alert.alert('Settings Saved', 'Your restaurant settings have been updated.');
-    console.log('Settings saved:', { restaurantName, googleSheetUrl });
   };
 
   const handleConnectSheet = () => {
@@ -233,36 +225,6 @@ export default function ProfileScreen() {
             <Text style={styles.cardDescription}>
               Keep this code secure. You&apos;ll need it to access the business dashboard.
             </Text>
-          </View>
-
-          {/* Restaurant Info Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Restaurant Information</Text>
-              <Pressable onPress={() => setIsEditing(!isEditing)}>
-                <IconSymbol
-                  name={isEditing ? 'checkmark.circle.fill' : 'pencil.circle.fill'}
-                  color={colors.primary}
-                  size={24}
-                />
-              </Pressable>
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Restaurant Name</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={restaurantName}
-                onChangeText={setRestaurantName}
-                editable={isEditing}
-                placeholder="Enter restaurant name"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-            {isEditing && (
-              <Pressable style={styles.saveButton} onPress={handleSaveSettings}>
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              </Pressable>
-            )}
           </View>
 
           {/* Google Sheets Integration Card */}
@@ -676,23 +638,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderWidth: 2,
     borderColor: colors.accent,
-  },
-  inputDisabled: {
-    opacity: 0.6,
-  },
-  saveButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
-    elevation: 2,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.card,
   },
   connectButton: {
     backgroundColor: colors.secondary,

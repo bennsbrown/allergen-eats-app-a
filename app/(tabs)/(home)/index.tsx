@@ -11,7 +11,6 @@ import {
   View,
   Text,
   Platform,
-  TextInput,
   Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -21,7 +20,6 @@ import { colors } from '@/styles/commonStyles';
 
 export default function HomeScreen() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const { menuItems, loading } = useMenuData();
   const filteredItems = useFilteredMenu(menuItems, selectedFilters);
 
@@ -33,10 +31,6 @@ export default function HomeScreen() {
       return [...prev, filterId];
     });
   };
-
-  const searchFilteredItems = filteredItems.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const renderHeaderRight = () => (
     <Pressable
@@ -90,18 +84,6 @@ export default function HomeScreen() {
             <Text style={styles.welcomeText}>
               Find dishes that match your dietary needs. Select your preferences below.
             </Text>
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search dishes..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
           </View>
 
           {/* Preferences Filter Section */}
@@ -188,7 +170,7 @@ export default function HomeScreen() {
           {selectedFilters.length > 0 && (
             <View style={styles.activeFiltersSection}>
               <Text style={styles.activeFiltersText}>
-                Showing {searchFilteredItems.length} dishes matching your filters:{' '}
+                Showing {filteredItems.length} dishes matching your filters:{' '}
                 {selectedFilters
                   .map(id => allFilters.find(f => f.id === id)?.name)
                   .join(', ')}
@@ -208,20 +190,18 @@ export default function HomeScreen() {
               <View style={styles.loadingContainer}>
                 <Text style={styles.loadingText}>Loading menu...</Text>
               </View>
-            ) : searchFilteredItems.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
                 <Text style={styles.emptyText}>
-                  {searchQuery
-                    ? 'No dishes match your search'
-                    : 'No dishes match your dietary requirements'}
+                  No dishes match your dietary requirements
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Try adjusting your filters or search
+                  Try adjusting your filters
                 </Text>
               </View>
             ) : (
-              searchFilteredItems.map((item, index) => (
+              filteredItems.map((item, index) => (
                 <Animated.View
                   key={item.id}
                   entering={FadeInDown.delay(index * 50)}
@@ -278,12 +258,6 @@ export default function HomeScreen() {
                 <Text style={styles.infoBullet}>4.</Text>
                 <Text style={styles.infoText}>
                   Each dish shows which allergens it contains
-                </Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>5.</Text>
-                <Text style={styles.infoText}>
-                  Use the search bar to find specific dishes
                 </Text>
               </View>
             </View>
@@ -356,34 +330,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 22,
     fontWeight: '500',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    color: colors.text,
   },
   preferencesBox: {
     backgroundColor: colors.highlight,
