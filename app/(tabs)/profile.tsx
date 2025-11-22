@@ -48,15 +48,15 @@ export default function ProfileScreen() {
     setIsLoggingIn(true);
 
     try {
-      const enteredCode = loginCode.trim();
-      setLastDebug('Code entered: ' + enteredCode);
-      Alert.alert('DEBUG', 'Code entered: ' + enteredCode);
+      const normalizedCode = loginCode.trim();
+      setLastDebug('Code entered: ' + normalizedCode);
+      Alert.alert('DEBUG', 'Code entered: ' + normalizedCode);
 
       // Query the business table for the entered code
       const { data, error } = await supabase
         .from('business')
         .select('*')
-        .eq('unique_identifier', enteredCode)
+        .eq('unique_identifier', normalizedCode)
         .limit(1)
         .single();
 
@@ -64,12 +64,21 @@ export default function ProfileScreen() {
         setLastDebug('Supabase error: ' + error.message);
         Alert.alert('Supabase error', error.message);
         console.error('Supabase query error:', error);
+        
+        // Check for duplicate rows error
+        if (error.message.includes('Cannot coerce the result to a single JSON object')) {
+          console.error('Multiple business rows match this code. Check for duplicates in the database.');
+          Alert.alert(
+            'Internal Configuration Issue',
+            'Multiple businesses found with this code. Please contact support.'
+          );
+        }
         return;
       }
 
       if (!data) {
-        setLastDebug('No business found for code: ' + enteredCode);
-        Alert.alert('DEBUG', 'No business found for code: ' + enteredCode);
+        setLastDebug('No business found for code: ' + normalizedCode);
+        Alert.alert('Error', 'We couldn\'t find a business with that code. Please check your code and try again.');
         return;
       }
 
