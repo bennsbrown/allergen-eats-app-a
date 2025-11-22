@@ -35,6 +35,8 @@ export default function ProfileScreen() {
   }, [business]);
 
   const handleLogin = async () => {
+    Alert.alert('DEBUG', 'Login button pressed');
+
     if (!loginCode.trim()) {
       Alert.alert('Error', 'Please enter a business code');
       return;
@@ -44,7 +46,7 @@ export default function ProfileScreen() {
 
     try {
       const enteredCode = loginCode.trim();
-      console.log('Attempting login with code:', enteredCode);
+      Alert.alert('DEBUG', 'Code entered: ' + enteredCode);
 
       // Query the business table for the entered code
       const { data, error } = await supabase
@@ -55,28 +57,23 @@ export default function ProfileScreen() {
         .single();
 
       if (error) {
+        Alert.alert('Supabase error', error.message);
         console.error('Supabase query error:', error);
-        if (error.code === 'PGRST116') {
-          // No rows returned
-          Alert.alert(
-            'Invalid Code',
-            'We couldn\'t find a business with that code. Please check your code and try again.'
-          );
-        } else {
-          Alert.alert('Error', 'An error occurred while logging in. Please try again.');
-        }
         return;
       }
 
-      if (data) {
-        console.log('Business found:', data);
-        
-        // Store business data using the hook
-        await loginWithCode(data);
-        
-        Alert.alert('Success', `Welcome to ${data.name || 'your business'} dashboard!`);
-        console.log('Business login successful');
+      if (!data) {
+        Alert.alert('DEBUG', 'No business found for code: ' + enteredCode);
+        return;
       }
+
+      Alert.alert('DEBUG', 'Business found: id=' + data.id + ', name=' + data.name);
+
+      // Store business data using the hook
+      await loginWithCode(data);
+      
+      Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
+      console.log('Business login successful');
     } catch (error: any) {
       console.error('Error in handleLogin:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
