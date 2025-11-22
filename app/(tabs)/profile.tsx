@@ -26,6 +26,7 @@ export default function ProfileScreen() {
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [lastDebug, setLastDebug] = useState('');
 
   useEffect(() => {
     // Load business data when logged in
@@ -35,9 +36,11 @@ export default function ProfileScreen() {
   }, [business]);
 
   const handleLogin = async () => {
+    setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
 
     if (!loginCode.trim()) {
+      setLastDebug('Error: No code entered');
       Alert.alert('Error', 'Please enter a business code');
       return;
     }
@@ -46,6 +49,7 @@ export default function ProfileScreen() {
 
     try {
       const enteredCode = loginCode.trim();
+      setLastDebug('Code entered: ' + enteredCode);
       Alert.alert('DEBUG', 'Code entered: ' + enteredCode);
 
       // Query the business table for the entered code
@@ -57,25 +61,30 @@ export default function ProfileScreen() {
         .single();
 
       if (error) {
+        setLastDebug('Supabase error: ' + error.message);
         Alert.alert('Supabase error', error.message);
         console.error('Supabase query error:', error);
         return;
       }
 
       if (!data) {
+        setLastDebug('No business found for code: ' + enteredCode);
         Alert.alert('DEBUG', 'No business found for code: ' + enteredCode);
         return;
       }
 
+      setLastDebug('Business found: ' + data.name);
       Alert.alert('DEBUG', 'Business found: id=' + data.id + ', name=' + data.name);
 
       // Store business data using the hook
       await loginWithCode(data);
       
+      setLastDebug('Navigating to dashboard/profile');
       Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
       console.log('Business login successful');
     } catch (error: any) {
       console.error('Error in handleLogin:', error);
+      setLastDebug('Unexpected error: ' + error.message);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoggingIn(false);
@@ -86,6 +95,7 @@ export default function ProfileScreen() {
     await logout();
     setLoginCode('');
     setGoogleSheetUrl('');
+    setLastDebug('');
     Alert.alert('Logged Out', 'You have been logged out of the business section.');
     console.log('Business logout');
   };
@@ -205,6 +215,13 @@ export default function ProfileScreen() {
                   <Text style={styles.loginButtonText}>Access Dashboard</Text>
                 )}
               </Pressable>
+
+              {lastDebug ? (
+                <View style={styles.debugContainer}>
+                  <Text style={styles.debugLabel}>Debug Status:</Text>
+                  <Text style={styles.debugText}>{lastDebug}</Text>
+                </View>
+              ) : null}
 
               <View style={styles.loginHintCard}>
                 <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
@@ -549,6 +566,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: colors.card,
+  },
+  debugContainer: {
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  debugLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  debugText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    lineHeight: 20,
   },
   loginHintCard: {
     flexDirection: 'row',
