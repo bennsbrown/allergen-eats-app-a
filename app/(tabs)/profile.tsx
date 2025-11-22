@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
@@ -11,20 +11,56 @@ import {
   TextInput,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
+import { supabase } from '@/app/integrations/supabase/client';
 
 export default function ProfileScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [businessCode, setBusinessCode] = useState('DEMO2024');
+  const [businessId, setBusinessId] = useState<number | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Simple login - in production, this would validate against a backend
   const VALID_CODE = 'DEMO2024';
+
+  useEffect(() => {
+    // Load business data when logged in
+    if (isLoggedIn) {
+      loadBusinessData();
+    }
+  }, [isLoggedIn]);
+
+  const loadBusinessData = async () => {
+    try {
+      // Fetch the first business from the database
+      const { data, error } = await supabase
+        .from('business')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error loading business data:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Loaded business data:', data);
+        setBusinessId(data.id);
+        setGoogleSheetUrl(data.sheet_url || '');
+        setBusinessCode(data.unique_identifier || 'DEMO2024');
+      }
+    } catch (error) {
+      console.error('Error in loadBusinessData:', error);
+    }
+  };
 
   const handleLogin = () => {
     if (loginCode.trim().toUpperCase() === VALID_CODE) {
@@ -40,21 +76,67 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setLoginCode('');
+    setBusinessId(null);
+    setGoogleSheetUrl('');
     Alert.alert('Logged Out', 'You have been logged out of the business section.');
     console.log('Business logout');
   };
 
-  const handleConnectSheet = () => {
+  const handleSaveAndSyncMenu = async () => {
     if (!googleSheetUrl) {
       Alert.alert('Error', 'Please enter a Google Sheet URL');
       return;
     }
-    Alert.alert(
-      'Connect Google Sheet',
-      'In production, this would connect to your Google Sheet and import menu data. For now, we are using sample data.',
-      [{ text: 'OK' }]
-    );
-    console.log('Connecting to Google Sheet:', googleSheetUrl);
+
+    if (!businessId) {
+      Alert.alert('Error', 'Business ID not found. Please try logging in again.');
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      console.log('Saving sheet URL to business:', businessId);
+      
+      // 1. Update the business table with the sheet URL
+      const { error: updateError } = await supabase
+        .from('business')
+        .update({ sheet_url: googleSheetUrl })
+        .eq('id', businessId);
+
+      if (updateError) {
+        throw new Error(`Failed to update sheet URL: ${updateError.message}`);
+      }
+
+      console.log('Sheet URL saved successfully');
+
+      // 2. Invoke the sync-menu edge function
+      console.log('Invoking sync-menu edge function with business_id:', businessId);
+      
+      const { data, error: invokeError } = await supabase.functions.invoke('sync-menu', {
+        body: { business_id: businessId },
+      });
+
+      if (invokeError) {
+        throw new Error(`Failed to sync menu: ${invokeError.message}`);
+      }
+
+      console.log('Edge function response:', data);
+
+      // 3. Show success message with items created count
+      const itemsCreated = data?.items_created || 0;
+      Alert.alert(
+        'Success',
+        `Menu synced successfully! ${itemsCreated} items created.`
+      );
+      
+      console.log(`Menu sync completed. ${itemsCreated} items created.`);
+    } catch (error: any) {
+      console.error('Error in handleSaveAndSyncMenu:', error);
+      Alert.alert('Error', error.message || 'An error occurred while syncing the menu.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const generateMenuUrl = () => {
@@ -246,11 +328,25 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!isSyncing}
               />
             </View>
-            <Pressable style={styles.connectButton} onPress={handleConnectSheet}>
-              <IconSymbol name="link" color={colors.card} size={20} />
-              <Text style={styles.connectButtonText}>Connect Sheet</Text>
+            <Pressable 
+              style={[styles.connectButton, isSyncing && styles.connectButtonDisabled]} 
+              onPress={handleSaveAndSyncMenu}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <>
+                  <ActivityIndicator color={colors.card} size="small" />
+                  <Text style={styles.connectButtonText}>Syncing...</Text>
+                </>
+              ) : (
+                <>
+                  <IconSymbol name="link" color={colors.card} size={20} />
+                  <Text style={styles.connectButtonText}>Save & Sync Menu</Text>
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -650,6 +746,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
+  },
+  connectButtonDisabled: {
+    opacity: 0.6,
   },
   connectButtonText: {
     fontSize: 16,
