@@ -1,71 +1,73 @@
 
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from './useAuth';
 
 export interface Business {
-  id: string;
-  created_at: string;
-  email: string;
-  business_name: string;
-  google_sheet_url: string | null;
-  qr_code_data: string;
-  user_id: string;
+  id: number;
+  created_at?: string;
+  unique_identifier: string;
+  name: string;
+  sheet_url: string | null;
+  qr_slug?: string | null;
 }
 
 const BUSINESS_STORAGE_KEY = '@business_data';
 
 export function useBusiness() {
-  const { user } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    loadBusiness();
+  }, []);
 
-    fetchBusiness();
-  }, [user]);
-
-  const fetchBusiness = async () => {
-    if (!user) return;
-
+  const loadBusiness = async () => {
     try {
       const businessJson = await AsyncStorage.getItem(BUSINESS_STORAGE_KEY);
       if (businessJson) {
         const businessData = JSON.parse(businessJson);
-        console.log('Fetched business:', businessData);
+        console.log('Loaded business from storage:', businessData);
         setBusiness(businessData);
-      } else {
-        // Create default business data if none exists
-        const defaultBusiness: Business = {
-          id: user.id,
-          created_at: new Date().toISOString(),
-          email: user.email,
-          business_name: user.businessName || 'My Business',
-          google_sheet_url: null,
-          qr_code_data: `https://yourapp.com/menu/${user.id}`,
-          user_id: user.id,
-        };
-        await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(defaultBusiness));
-        setBusiness(defaultBusiness);
       }
     } catch (error) {
-      console.error('Error in fetchBusiness:', error);
+      console.error('Error loading business:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const loginWithCode = async (businessData: Business) => {
+    try {
+      // Store business data in AsyncStorage
+      await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(businessData));
+      
+      console.log('Business data stored:', businessData);
+      setBusiness(businessData);
+      return businessData;
+    } catch (error) {
+      console.error('Error storing business data:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem(BUSINESS_STORAGE_KEY);
+      setBusiness(null);
+      console.log('Business logged out');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      throw error;
+    }
+  };
+
   const updateGoogleSheetUrl = async (url: string) => {
-    if (!user || !business) return;
+    if (!business) return;
 
     try {
       const updatedBusiness = {
         ...business,
-        google_sheet_url: url,
+        sheet_url: url,
       };
 
       await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
@@ -80,12 +82,12 @@ export function useBusiness() {
   };
 
   const updateBusinessName = async (name: string) => {
-    if (!user || !business) return;
+    if (!business) return;
 
     try {
       const updatedBusiness = {
         ...business,
-        business_name: name,
+        name: name,
       };
 
       await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
@@ -102,8 +104,10 @@ export function useBusiness() {
   return {
     business,
     loading,
+    loginWithCode,
+    logout,
     updateGoogleSheetUrl,
     updateBusinessName,
-    refreshBusiness: fetchBusiness,
+    refreshBusiness: loadBusiness,
   };
 }

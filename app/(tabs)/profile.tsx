@@ -18,65 +18,76 @@ import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { supabase } from '@/app/integrations/supabase/client';
+import { useBusiness } from '@/hooks/useBusiness';
 
 export default function ProfileScreen() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { business, loading: businessLoading, loginWithCode, logout } = useBusiness();
   const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
-  const [businessCode, setBusinessCode] = useState('DEMO2024');
-  const [businessId, setBusinessId] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Simple login - in production, this would validate against a backend
-  const VALID_CODE = 'DEMO2024';
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     // Load business data when logged in
-    if (isLoggedIn) {
-      loadBusinessData();
+    if (business) {
+      setGoogleSheetUrl(business.sheet_url || '');
     }
-  }, [isLoggedIn]);
+  }, [business]);
 
-  const loadBusinessData = async () => {
+  const handleLogin = async () => {
+    if (!loginCode.trim()) {
+      Alert.alert('Error', 'Please enter a business code');
+      return;
+    }
+
+    setIsLoggingIn(true);
+
     try {
-      // Fetch the first business from the database
+      const enteredCode = loginCode.trim();
+      console.log('Attempting login with code:', enteredCode);
+
+      // Query the business table for the entered code
       const { data, error } = await supabase
         .from('business')
         .select('*')
+        .eq('unique_identifier', enteredCode)
         .limit(1)
         .single();
 
       if (error) {
-        console.error('Error loading business data:', error);
+        console.error('Supabase query error:', error);
+        if (error.code === 'PGRST116') {
+          // No rows returned
+          Alert.alert(
+            'Invalid Code',
+            'We couldn\'t find a business with that code. Please check your code and try again.'
+          );
+        } else {
+          Alert.alert('Error', 'An error occurred while logging in. Please try again.');
+        }
         return;
       }
 
       if (data) {
-        console.log('Loaded business data:', data);
-        setBusinessId(data.id);
-        setGoogleSheetUrl(data.sheet_url || '');
-        setBusinessCode(data.unique_identifier || 'DEMO2024');
+        console.log('Business found:', data);
+        
+        // Store business data using the hook
+        await loginWithCode(data);
+        
+        Alert.alert('Success', `Welcome to ${data.name || 'your business'} dashboard!`);
+        console.log('Business login successful');
       }
-    } catch (error) {
-      console.error('Error in loadBusinessData:', error);
+    } catch (error: any) {
+      console.error('Error in handleLogin:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogin = () => {
-    if (loginCode.trim().toUpperCase() === VALID_CODE) {
-      setIsLoggedIn(true);
-      Alert.alert('Success', 'Welcome to your business dashboard!');
-      console.log('Business login successful');
-    } else {
-      Alert.alert('Invalid Code', 'Please enter a valid business access code.');
-      console.log('Login failed with code:', loginCode);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     setLoginCode('');
-    setBusinessId(null);
     setGoogleSheetUrl('');
     Alert.alert('Logged Out', 'You have been logged out of the business section.');
     console.log('Business logout');
@@ -88,7 +99,7 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (!businessId) {
+    if (!business?.id) {
       Alert.alert('Error', 'Business ID not found. Please try logging in again.');
       return;
     }
@@ -96,13 +107,13 @@ export default function ProfileScreen() {
     setIsSyncing(true);
 
     try {
-      console.log('Saving sheet URL to business:', businessId);
+      console.log('Saving sheet URL to business:', business.id);
       
       // 1. Update the business table with the sheet URL
       const { error: updateError } = await supabase
         .from('business')
         .update({ sheet_url: googleSheetUrl })
-        .eq('id', businessId);
+        .eq('id', business.id);
 
       if (updateError) {
         throw new Error(`Failed to update sheet URL: ${updateError.message}`);
@@ -111,10 +122,10 @@ export default function ProfileScreen() {
       console.log('Sheet URL saved successfully');
 
       // 2. Invoke the sync-menu edge function
-      console.log('Invoking sync-menu edge function with business_id:', businessId);
+      console.log('Invoking sync-menu edge function with business_id:', business.id);
       
       const { data, error: invokeError } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: businessId },
+        body: { business_id: business.id },
       });
 
       if (invokeError) {
@@ -141,7 +152,7 @@ export default function ProfileScreen() {
 
   const generateMenuUrl = () => {
     // In production, this would be your actual app URL with business ID
-    return `https://yourapp.com/menu/${businessCode}`;
+    return `https://yourapp.com/menu/${business?.unique_identifier || 'DEMO2024'}`;
   };
 
   const handleNavigateToTerms = () => {
@@ -150,7 +161,7 @@ export default function ProfileScreen() {
   };
 
   // Login Screen
-  if (!isLoggedIn) {
+  if (!business) {
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -179,17 +190,29 @@ export default function ProfileScreen() {
                   autoCapitalize="characters"
                   autoCorrect={false}
                   secureTextEntry={false}
+                  editable={!isLoggingIn}
                 />
               </View>
 
-              <Pressable style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.loginButtonText}>Access Dashboard</Text>
+              <Pressable 
+                style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]} 
+                onPress={handleLogin}
+                disabled={isLoggingIn}
+              >
+                {isLoggingIn ? (
+                  <>
+                    <ActivityIndicator color={colors.card} size="small" />
+                    <Text style={styles.loginButtonText}>Logging in...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.loginButtonText}>Access Dashboard</Text>
+                )}
               </Pressable>
 
               <View style={styles.loginHintCard}>
                 <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
                 <Text style={styles.loginHintText}>
-                  Demo code: <Text style={styles.loginHintCode}>DEMO2024</Text>
+                  Enter your business code (e.g. PIZZA-001)
                 </Text>
               </View>
             </View>
@@ -230,7 +253,7 @@ export default function ProfileScreen() {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
-              Manage your allergen menu configuration
+              {business.name || 'Manage your allergen menu configuration'}
             </Text>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
@@ -302,7 +325,7 @@ export default function ProfileScreen() {
               <Text style={styles.cardTitle}>Your Business Code</Text>
             </View>
             <View style={styles.businessCodeDisplay}>
-              <Text style={styles.businessCodeText}>{businessCode}</Text>
+              <Text style={styles.businessCodeText}>{business.unique_identifier || 'N/A'}</Text>
             </View>
             <Text style={styles.cardDescription}>
               Keep this code secure. You&apos;ll need it to access the business dashboard.
@@ -516,8 +539,14 @@ const styles = StyleSheet.create({
     padding: 18,
     width: '100%',
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
     boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.4)',
     elevation: 4,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
     fontSize: 18,
@@ -561,6 +590,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 6,
     fontWeight: '500',
+    textAlign: 'center',
   },
   logoutButton: {
     flexDirection: 'row',
