@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Animated, { 
   FadeInDown,
 } from 'react-native-reanimated';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import {
   ScrollView,
   Pressable,
@@ -13,29 +13,100 @@ import {
   Platform,
   Image,
   TextInput,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useMenuData, useFilteredMenu } from '@/hooks/useMenuData';
 import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { colors } from '@/styles/commonStyles';
+import { supabase } from '@/app/integrations/supabase/client';
 
 export default function HomeScreen() {
+  const { code } = useLocalSearchParams<{ code?: string }>();
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const { menuItems, loading } = useMenuData();
-  const filteredItems = useFilteredMenu(menuItems, selectedFilters);
+  
+  // State for QR code-based menu loading
+  const [loading, setLoading] = useState(true);
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Apply search filter on top of dietary filters
+  // Load menu data based on QR code
+  useEffect(() => {
+    const loadMenu = async () => {
+      if (!code) {
+        setError('No menu code provided. Please scan a QR code to view the menu.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Loading menu for code:', code);
+
+      try {
+        // Fetch business by unique_identifier
+        const { data: business, error: bizError } = await supabase
+          .from('business')
+          .select('id, name, unique_identifier')
+          .eq('unique_identifier', code)
+          .maybeSingle();
+
+        if (bizError) {
+          console.error('Error fetching business:', bizError);
+          setError('Failed to load menu. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        if (!business) {
+          console.log('No business found for code:', code);
+          setError('Menu link is invalid. Please check the QR code and try again.');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Business found:', business.name);
+        setBusinessName(business.name);
+
+        // Fetch menu items for this business
+        const { data: menuItems, error: itemErr } = await supabase
+          .from('menu_item')
+          .select('id, name, category')
+          .eq('business_id', business.id)
+          .order('category');
+
+        if (itemErr) {
+          console.error('Error fetching menu items:', itemErr);
+          setError('Failed to load menu items. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Menu items loaded:', menuItems?.length || 0);
+        setItems(menuItems || []);
+        setLoading(false);
+      } catch (err: any) {
+        console.error('Unexpected error loading menu:', err);
+        setError('An unexpected error occurred. Please try again.');
+        setLoading(false);
+      }
+    };
+
+    loadMenu();
+  }, [code]);
+
+  // Apply search filter
   const searchFilteredItems = useMemo(() => {
     if (!searchQuery.trim()) {
-      return filteredItems;
+      return items;
     }
     const query = searchQuery.toLowerCase();
-    return filteredItems.filter(item => 
+    return items.filter(item => 
       item.name.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
+      (item.category && item.category.toLowerCase().includes(query))
     );
-  }, [filteredItems, searchQuery]);
+  }, [items, searchQuery]);
 
   const toggleFilter = (filterId: string) => {
     setSelectedFilters(prev => {
@@ -64,12 +135,108 @@ export default function HomeScreen() {
 
   const allFilters = [...DIETARY_NEEDS_FILTERS, ...PREFERENCES_FILTERS];
 
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        {Platform.OS === 'ios' && (
+          <Stack.Screen
+            options={{
+              title: 'Allergen Menu',
+              headerRight: renderHeaderRight,
+            }}
+          />
+        )}
+        <View style={styles.container}>
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading menu...</Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <>
+        {Platform.OS === 'ios' && (
+          <Stack.Screen
+            options={{
+              title: 'Allergen Menu',
+              headerRight: renderHeaderRight,
+            }}
+          />
+        )}
+        <View style={styles.container}>
+          <View style={styles.centerContainer}>
+            <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={64} />
+            <Text style={styles.errorTitle}>Unable to Load Menu</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.errorButton} onPress={() => router.push('/')}>
+              <Text style={styles.errorButtonText}>Go Back</Text>
+            </Pressable>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  // Empty menu state
+  if (items.length === 0) {
+    return (
+      <>
+        {Platform.OS === 'ios' && (
+          <Stack.Screen
+            options={{
+              title: businessName || 'Allergen Menu',
+              headerRight: renderHeaderRight,
+            }}
+          />
+        )}
+        <View style={styles.container}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.logoContainer}>
+              <Image
+                source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>{businessName || 'Restaurant'}</Text>
+              <Text style={styles.welcomeText}>
+                This restaurant hasn&apos;t added any menu items yet. Please check back later.
+              </Text>
+            </View>
+
+            <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+              <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+              <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+              <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+            </Pressable>
+          </ScrollView>
+        </View>
+      </>
+    );
+  }
+
+  // Main menu display
   return (
     <>
       {Platform.OS === 'ios' && (
         <Stack.Screen
           options={{
-            title: 'Allergen Menu',
+            title: businessName || 'Allergen Menu',
             headerRight: renderHeaderRight,
           }}
         />
@@ -83,7 +250,7 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section - No box, bigger size */}
+          {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Image
               source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
@@ -94,13 +261,13 @@ export default function HomeScreen() {
 
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome!</Text>
+            <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
             <Text style={styles.welcomeText}>
-              Find dishes that match your dietary needs. Select your preferences below.
+              Browse our menu below. Use the search bar to find specific dishes.
             </Text>
           </View>
 
-          {/* Search Bar - Positioned AFTER Welcome Section */}
+          {/* Search Bar */}
           <View style={styles.searchContainer}>
             <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
             <TextInput
@@ -118,184 +285,64 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Preferences Filter Section */}
-          <View style={styles.preferencesBox}>
-            <View style={styles.filtersSection}>
-              <Text style={styles.sectionTitle}>Preferences</Text>
-              <Text style={styles.sectionSubtitle}>Select dietary preferences</Text>
-              <View style={styles.filterChipsContainer}>
-                {PREFERENCES_FILTERS.map((filter, index) => {
-                  const isSelected = selectedFilters.includes(filter.id);
-                  return (
-                    <Animated.View
-                      key={filter.id}
-                      entering={FadeInDown.delay(index * 30)}
-                    >
-                      <Pressable
-                        style={[
-                          styles.filterChip,
-                          isSelected && styles.filterChipSelected,
-                        ]}
-                        onPress={() => toggleFilter(filter.id)}
-                      >
-                        <IconSymbol
-                          name={filter.icon as any}
-                          color={isSelected ? colors.card : colors.primary}
-                          size={18}
-                        />
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            isSelected && styles.filterChipTextSelected,
-                          ]}
-                        >
-                          {filter.name}
-                        </Text>
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-
-          {/* Dietary Needs Filter Section */}
-          <View style={styles.filtersSection}>
-            <Text style={styles.sectionTitle}>Dietary Needs</Text>
-            <Text style={styles.sectionSubtitle}>Select allergens to avoid</Text>
-            <View style={styles.filterChipsContainer}>
-              {DIETARY_NEEDS_FILTERS.map((filter, index) => {
-                const isSelected = selectedFilters.includes(filter.id);
-                return (
-                  <Animated.View
-                    key={filter.id}
-                    entering={FadeInDown.delay((PREFERENCES_FILTERS.length + index) * 30)}
-                  >
-                    <Pressable
-                      style={[
-                        styles.filterChip,
-                        isSelected && styles.filterChipSelected,
-                      ]}
-                      onPress={() => toggleFilter(filter.id)}
-                    >
-                      <IconSymbol
-                        name={filter.icon as any}
-                        color={isSelected ? colors.card : colors.primary}
-                        size={18}
-                      />
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          isSelected && styles.filterChipTextSelected,
-                        ]}
-                      >
-                        {filter.name}
-                      </Text>
-                    </Pressable>
-                  </Animated.View>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Active Filters Display */}
-          {selectedFilters.length > 0 && (
-            <View style={styles.activeFiltersSection}>
-              <Text style={styles.activeFiltersText}>
-                Showing {searchFilteredItems.length} dishes matching your filters:{' '}
-                {selectedFilters
-                  .map(id => allFilters.find(f => f.id === id)?.name)
-                  .join(', ')}
-              </Text>
-              <Pressable onPress={() => setSelectedFilters([])}>
-                <Text style={styles.clearFiltersText}>Clear All</Text>
-              </Pressable>
-            </View>
-          )}
-
           {/* Menu Items */}
           <View style={styles.menuSection}>
             <Text style={styles.sectionTitle}>
-              {selectedFilters.length > 0 ? 'Safe for You' : searchQuery ? 'Search Results' : 'All Dishes'}
+              {searchQuery ? 'Search Results' : 'Menu'}
             </Text>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading menu...</Text>
-              </View>
-            ) : searchFilteredItems.length === 0 ? (
+            {searchFilteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
                 <Text style={styles.emptyText}>
-                  {searchQuery ? 'No dishes found matching your search' : 'No dishes match your dietary requirements'}
+                  No dishes found matching your search
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  {searchQuery ? 'Try a different search term' : 'Try adjusting your filters'}
+                  Try a different search term
                 </Text>
               </View>
             ) : (
-              searchFilteredItems.map((item, index) => (
-                <Animated.View
-                  key={item.id}
-                  entering={FadeInDown.delay(index * 50)}
-                >
+              <FlatList
+                data={searchFilteredItems}
+                keyExtractor={(item) => String(item.id)}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
                   <View style={styles.menuCard}>
                     <View style={styles.menuCardContent}>
                       <View style={styles.menuItemHeader}>
                         <Text style={styles.menuItemName}>{item.name}</Text>
-                        <View style={styles.categoryBadge}>
-                          <Text style={styles.menuItemCategory}>{item.category}</Text>
-                        </View>
+                        {item.category && (
+                          <View style={styles.categoryBadge}>
+                            <Text style={styles.menuItemCategory}>{item.category}</Text>
+                          </View>
+                        )}
                       </View>
-                      {item.allergens.length > 0 && (
-                        <View style={styles.allergenBadgesContainer}>
-                          {item.allergens.map(allergen => (
-                            <View key={allergen} style={styles.allergenBadge}>
-                              <Text style={styles.allergenBadgeText}>
-                                {allFilters.find(f => f.id === allergen)?.name || allergen}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
                     </View>
                   </View>
-                </Animated.View>
-              ))
+                )}
+              />
             )}
           </View>
 
           {/* Info Section */}
           <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>How to Use</Text>
+            <Text style={styles.infoTitle}>About This Menu</Text>
             <View style={styles.infoList}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>1.</Text>
+                <Text style={styles.infoBullet}>•</Text>
                 <Text style={styles.infoText}>
                   Use the search bar to quickly find specific dishes
                 </Text>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>2.</Text>
+                <Text style={styles.infoBullet}>•</Text>
                 <Text style={styles.infoText}>
-                  Select dietary preferences like Vegan, Vegetarian, Halal, or Kosher
+                  All menu items are provided by {businessName}
                 </Text>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>3.</Text>
+                <Text style={styles.infoBullet}>•</Text>
                 <Text style={styles.infoText}>
-                  Select allergens to avoid in the &quot;Dietary Needs&quot; section
-                </Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>4.</Text>
-                <Text style={styles.infoText}>
-                  Browse dishes that are safe for you
-                </Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoBullet}>5.</Text>
-                <Text style={styles.infoText}>
-                  Each dish shows which allergens it contains
+                  For allergen information, please ask your server
                 </Text>
               </View>
             </View>
@@ -328,6 +375,47 @@ const styles = StyleSheet.create({
   },
   scrollContentWithTabBar: {
     paddingBottom: 100,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text,
+    marginTop: 16,
+    fontWeight: '600',
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  errorButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    boxShadow: '0px 4px 12px rgba(56, 189, 248, 0.3)',
+    elevation: 3,
+  },
+  errorButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.card,
   },
   logoContainer: {
     alignItems: 'center',
@@ -398,114 +486,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  preferencesBox: {
-    backgroundColor: colors.highlight,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  filtersSection: {
-    marginBottom: 20,
+  menuSection: {
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
     marginBottom: 12,
-  },
-  filterChipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  filterChipSelected: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.secondary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  filterChipTextSelected: {
-    color: colors.card,
-  },
-  activeFiltersSection: {
-    backgroundColor: colors.highlight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  activeFiltersText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  clearFiltersText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  menuSection: {
-    marginBottom: 16,
   },
   menuCard: {
     backgroundColor: colors.card,
@@ -553,33 +541,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  allergenBadgesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  allergenBadge: {
-    backgroundColor: colors.highlight,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  allergenBadgeText: {
-    fontSize: 11,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  loadingContainer: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    fontWeight: '600',
   },
   emptyContainer: {
     padding: 32,

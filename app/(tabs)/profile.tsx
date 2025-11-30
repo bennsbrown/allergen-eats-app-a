@@ -29,13 +29,6 @@ export default function ProfileScreen() {
   const [lastDebug, setLastDebug] = useState('');
   const [syncDebug, setSyncDebug] = useState('');
 
-  useEffect(() => {
-    // Load business data when logged in
-    if (business) {
-      setGoogleSheetUrl(business.sheet_url || '');
-    }
-  }, [business]);
-
   const handleLogin = async () => {
     setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
@@ -140,11 +133,11 @@ export default function ProfileScreen() {
         return;
       }
 
-      console.log('Sheet URL saved successfully, invoking sync_menu edge function...');
-      setSyncDebug('Sheet URL saved, invoking sync_menu edge function...');
+      console.log('Sheet URL saved successfully, invoking sync-menu edge function...');
+      setSyncDebug('Sheet URL saved, invoking sync-menu edge function...');
 
-      // 2. Invoke the Supabase Edge Function called sync_menu (with hyphen)
-      const { data, error } = await supabase.functions.invoke('sync_menu', {
+      // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
+      const { data, error } = await supabase.functions.invoke('sync-menu', {
         body: { business_id: business.id }
       });
 
@@ -200,8 +193,8 @@ export default function ProfileScreen() {
   };
 
   const generateMenuUrl = () => {
-    // In production, this would be your actual app URL with business ID
-    return `https://yourapp.com/menu/${business?.unique_identifier || 'DEMO2024'}`;
+    const code = business?.unique_identifier || 'DEMO2024';
+    return `https://natively.dev/?code=${code}`;
   };
 
   const handleNavigateToTerms = () => {
