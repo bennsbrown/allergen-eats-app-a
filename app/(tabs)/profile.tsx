@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  Pressable,
+  Pressable, 
   TextInput,
   Alert,
   Image,
@@ -27,6 +27,7 @@ export default function ProfileScreen() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [lastDebug, setLastDebug] = useState('');
+  const [syncDebug, setSyncDebug] = useState('');
 
   useEffect(() => {
     // Load business data when logged in
@@ -98,17 +99,22 @@ export default function ProfileScreen() {
     setLoginCode('');
     setGoogleSheetUrl('');
     setLastDebug('');
+    setSyncDebug('');
     Alert.alert('Logged Out', 'You have been logged out of the business section.');
     console.log('Business logout');
   };
 
   const handleSaveAndSyncMenu = async () => {
+    setSyncDebug('Sync button pressed');
+
     if (!googleSheetUrl.trim()) {
+      setSyncDebug('Error: No Google Sheet URL entered');
       Alert.alert('Error', 'Please enter a Google Sheet URL');
       return;
     }
 
     if (!business?.id) {
+      setSyncDebug('Error: Business ID not found');
       Alert.alert('Error', 'Business ID not found. Please try logging in again.');
       return;
     }
@@ -119,6 +125,7 @@ export default function ProfileScreen() {
       console.log('=== SYNC MENU START ===');
       console.log('Business ID:', business.id);
       console.log('Sheet URL:', googleSheetUrl.trim());
+      setSyncDebug('Starting sync for business ID: ' + business.id);
 
       // 1. Save the Google Sheet URL to business.sheet_url in Supabase
       const { error: updateError } = await supabase
@@ -128,14 +135,16 @@ export default function ProfileScreen() {
 
       if (updateError) {
         console.error('Failed to update sheet URL:', updateError);
+        setSyncDebug('Failed to save sheet URL: ' + updateError.message);
         Alert.alert('Error', `Failed to save sheet URL: ${updateError.message}`);
         return;
       }
 
-      console.log('Sheet URL saved successfully, invoking sync-menu edge function...');
+      console.log('Sheet URL saved successfully, invoking sync_menu edge function...');
+      setSyncDebug('Sheet URL saved, invoking sync_menu edge function...');
 
-      // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
-      const { data, error } = await supabase.functions.invoke('sync-menu', {
+      // 2. Invoke the Supabase Edge Function called sync_menu (with hyphen)
+      const { data, error } = await supabase.functions.invoke('sync_menu', {
         body: { business_id: business.id }
       });
 
@@ -146,6 +155,7 @@ export default function ProfileScreen() {
       // Handle edge function invocation errors (network, timeout, etc.)
       if (error) {
         console.error('Edge function invocation error:', error);
+        setSyncDebug('Edge function error: ' + error.message);
         Alert.alert('Error', error.message || 'Failed to sync menu. Please try again.');
         return;
       }
@@ -153,6 +163,7 @@ export default function ProfileScreen() {
       // Handle errors returned in the response body
       if (data?.error) {
         console.error('Edge function returned error:', data.error);
+        setSyncDebug('Edge function returned error: ' + data.error);
         
         // Check for specific error messages
         const errorMessage = data.error.toLowerCase();
@@ -172,6 +183,7 @@ export default function ProfileScreen() {
       
       console.log('=== SYNC SUCCESS ===');
       console.log('Items created:', itemsCreated);
+      setSyncDebug('Success! Menu synced. ' + itemsCreated + ' items created.');
 
       // Display success alert with exact format requested
       Alert.alert('Success', 'Menu synced! ' + itemsCreated + ' items created.');
@@ -179,6 +191,7 @@ export default function ProfileScreen() {
       console.log(`Menu sync completed successfully. ${itemsCreated} items created.`);
     } catch (error: any) {
       console.error('Error in handleSaveAndSyncMenu:', error);
+      setSyncDebug('Unexpected error: ' + error.message);
       Alert.alert('Error', error.message || 'An error occurred while syncing the menu. Please try again.');
     } finally {
       setIsSyncing(false);
@@ -319,7 +332,7 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={googleSheetUrl}
                 onChangeText={setGoogleSheetUrl}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
+                placeholder=""
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -343,6 +356,13 @@ export default function ProfileScreen() {
                 </>
               )}
             </Pressable>
+
+            {syncDebug ? (
+              <View style={styles.debugContainer}>
+                <Text style={styles.debugLabel}>Debug Status:</Text>
+                <Text style={styles.debugText}>{syncDebug}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Instructions Card */}
@@ -411,7 +431,7 @@ export default function ProfileScreen() {
                     style={styles.qrCodeLogoImage}
                     resizeMode="contain"
                   />
-                </View>
+                </View> 
                 <View style={styles.qrCodeWrapper}>
                   <QRCode
                     value={generateMenuUrl()}
