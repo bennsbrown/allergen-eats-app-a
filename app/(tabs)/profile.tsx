@@ -57,28 +57,21 @@ export default function ProfileScreen() {
         .from('business')
         .select('*')
         .eq('unique_identifier', normalizedCode)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error) { 
         setLastDebug('Supabase error: ' + error.message);
         Alert.alert('Supabase error', error.message);
         console.error('Supabase query error:', error);
-        
-        // Check for duplicate rows error
-        if (error.message.includes('Cannot coerce the result to a single JSON object')) {
-          console.error('Multiple business rows match this code. Check for duplicates in the database.');
-          Alert.alert(
-            'Internal Configuration Issue',
-            'Multiple businesses found with this code. Please contact support.'
-          );
-        }
         return;
       }
 
       if (!data) {
         setLastDebug('No business found for code: ' + normalizedCode);
-        Alert.alert('Error', 'We couldn\'t find a business with that code. Please check your code and try again.');
+        Alert.alert(
+          'Error',
+          "We couldn't find a business with that code. Please check your code and try again."
+        );
         return;
       }
 
@@ -87,11 +80,11 @@ export default function ProfileScreen() {
 
       // Store business data using the hook
       await loginWithCode(data);
-      
+
       setLastDebug('Navigating to dashboard/profile');
       Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
       console.log('Business login successful');
-    } catch (error: any) {
+    } catch (error: any) { 
       console.error('Error in handleLogin:', error);
       setLastDebug('Unexpected error: ' + error.message);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -110,7 +103,7 @@ export default function ProfileScreen() {
   };
 
   const handleSaveAndSyncMenu = async () => {
-    if (!googleSheetUrl) {
+    if (!googleSheetUrl.trim()) {
       Alert.alert('Error', 'Please enter a Google Sheet URL');
       return;
     }
@@ -124,43 +117,73 @@ export default function ProfileScreen() {
 
     try {
       console.log('Saving sheet URL to business:', business.id);
-      
+
       // 1. Update the business table with the sheet URL
       const { error: updateError } = await supabase
         .from('business')
-        .update({ sheet_url: googleSheetUrl })
+        .update({ sheet_url: googleSheetUrl.trim() })
         .eq('id', business.id);
 
       if (updateError) {
-        throw new Error(`Failed to update sheet URL: ${updateError.message}`);
+        console.error('Failed to update sheet URL:', updateError);
+        throw new Error(`Failed to save sheet URL: ${updateError.message}`);
       }
 
-      console.log('Sheet URL saved successfully');
+      console.log('Sheet URL saved successfully, invoking sync-menu edge function...');
 
       // 2. Invoke the sync-menu edge function
-      console.log('Invoking sync-menu edge function with business_id:', business.id);
-      
-      const { data, error: invokeError } = await supabase.functions.invoke('sync-menu', {
+      const { data: syncData, error: invokeError } = await supabase.functions.invoke('sync-menu', {
         body: { business_id: business.id },
       });
 
+      console.log('Edge function response:', syncData);
+      console.log('Edge function error:', invokeError);
+
+      // Handle edge function errors
       if (invokeError) {
-        throw new Error(`Failed to sync menu: ${invokeError.message}`);
+        console.error('Edge function invocation error:', invokeError);
+        throw new Error(`Sync failed: ${invokeError.message}`);
       }
 
-      console.log('Edge function response:', data);
+      // Handle errors returned in the response body
+      if (syncData?.error) {
+        console.error('Edge function returned error:', syncData.error);
+        
+        // Provide user-friendly error messages
+        let errorMessage = syncData.error;
+        if (errorMessage.includes('sheet_url')) {
+          errorMessage = 'No Google Sheet URL found. Please enter a valid URL and try again.';
+        } else if (errorMessage.includes('Failed to fetch')) {
+          errorMessage = 'Could not access the Google Sheet. Please check the URL and make sure the sheet is publicly accessible.';
+        } else if (errorMessage.includes('empty')) {
+          errorMessage = 'The Google Sheet appears to be empty. Please add menu items and try again.';
+        } else if (errorMessage.includes('Invalid business_id')) {
+          errorMessage = 'Business not found. Please try logging in again.';
+        }
+        
+        Alert.alert('Sync Error', errorMessage);
+        return;
+      }
 
       // 3. Show success message with items created count
-      const itemsCreated = data?.items_created || 0;
-      Alert.alert(
-        'Success',
-        `Menu synced successfully! ${itemsCreated} items created.`
-      );
+      const itemsCreated = syncData?.items_created || 0;
       
+      if (itemsCreated === 0) {
+        Alert.alert(
+          'Sync Complete',
+          'Menu synced, but no items were created. Please check your Google Sheet format.'
+        );
+      } else {
+        Alert.alert(
+          'Success! 🎉',
+          `Menu synced successfully!\n\n${itemsCreated} item${itemsCreated !== 1 ? 's' : ''} updated.`
+        );
+      }
+
       console.log(`Menu sync completed. ${itemsCreated} items created.`);
     } catch (error: any) {
       console.error('Error in handleSaveAndSyncMenu:', error);
-      Alert.alert('Error', error.message || 'An error occurred while syncing the menu.');
+      Alert.alert('Sync Error', error.message || 'An error occurred while syncing the menu. Please try again.');
     } finally {
       setIsSyncing(false);
     }
@@ -195,7 +218,7 @@ export default function ProfileScreen() {
               <Text style={styles.loginSubtitle}>
                 Enter your unique business code to access the dashboard
               </Text>
-              
+
               <View style={styles.loginInputContainer}>
                 <TextInput
                   style={styles.loginInput}
@@ -210,8 +233,8 @@ export default function ProfileScreen() {
                 />
               </View>
 
-              <Pressable 
-                style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]} 
+              <Pressable
+                style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
                 onPress={handleLogin}
                 disabled={isLoggingIn}
               >
@@ -284,6 +307,96 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
+          {/* Google Sheets Integration Card - Moved to top for better visibility */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="doc.text.fill" color={colors.secondary} size={24} />
+              <Text style={styles.cardTitle}>Google Sheets Integration</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Connect your Google Sheet to automatically import and update your menu items and allergen information.
+            </Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Google Sheet URL</Text>
+              <TextInput
+                style={styles.input}
+                value={googleSheetUrl}
+                onChangeText={setGoogleSheetUrl}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSyncing}
+              />
+            </View>
+            <Pressable
+              style={[styles.connectButton, isSyncing && styles.connectButtonDisabled]}
+              onPress={handleSaveAndSyncMenu}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <>
+                  <ActivityIndicator color={colors.card} size="small" />
+                  <Text style={styles.connectButtonText}>Syncing Menu...</Text>
+                </>
+              ) : (
+                <>
+                  <IconSymbol name="arrow.triangle.2.circlepath" color={colors.card} size={20} />
+                  <Text style={styles.connectButtonText}>Save & Sync Menu</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+
+          {/* Instructions Card */}
+          <View style={styles.instructionsCard}>
+            <View style={styles.cardHeader}>
+              <IconSymbol name="info.circle.fill" color={colors.card} size={24} />
+              <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
+            </View>
+            <Text style={styles.instructionText}>
+              Your Google Sheet should have the following columns:
+            </Text>
+            <View style={styles.columnList}>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Name:</Text> Dish name
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Description:</Text> Brief description (optional)
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Category:</Text> Mains, Salads, Desserts, etc.
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Allergens:</Text> Comma-separated (nuts, gluten, dairy, etc.)
+                </Text>
+              </View>
+              <View style={styles.columnItem}>
+                <Text style={styles.columnBullet}>•</Text>
+                <Text style={styles.columnText}>
+                  <Text style={styles.columnBold}>Preferences:</Text> Comma-separated (vegan, vegetarian, etc.)
+                </Text>
+              </View>
+            </View>
+            <View style={styles.instructionNote}>
+              <IconSymbol name="exclamationmark.triangle.fill" color={colors.card} size={16} />
+              <Text style={styles.instructionNoteText}>
+                Make sure your Google Sheet is publicly accessible (Anyone with the link can view)
+              </Text>
+            </View>
+          </View>
+
           {/* QR Code Card */}
           <View style={styles.qrCard}>
             <View style={styles.cardHeader}>
@@ -318,20 +431,26 @@ export default function ProfileScreen() {
               <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
             </View>
             <View style={styles.qrActionsContainer}>
-              <Pressable 
+              <Pressable
                 style={styles.qrActionButton}
                 onPress={() => {
-                  Alert.alert('Download QR Code', 'In production, this would download the QR code as an image.');
+                  Alert.alert(
+                    'Download QR Code',
+                    'In production, this would download the QR code as an image.'
+                  );
                   console.log('Download QR code');
                 }}
               >
                 <IconSymbol name="arrow.down.circle.fill" color={colors.card} size={20} />
                 <Text style={styles.qrActionButtonText}>Download</Text>
               </Pressable>
-              <Pressable 
+              <Pressable
                 style={[styles.qrActionButton, styles.qrActionButtonSecondary]}
                 onPress={() => {
-                  Alert.alert('Share QR Code', 'In production, this would open the share dialog.');
+                  Alert.alert(
+                    'Share QR Code',
+                    'In production, this would open the share dialog.'
+                  );
                   console.log('Share QR code');
                 }}
               >
@@ -348,89 +467,13 @@ export default function ProfileScreen() {
               <Text style={styles.cardTitle}>Your Business Code</Text>
             </View>
             <View style={styles.businessCodeDisplay}>
-              <Text style={styles.businessCodeText}>{business.unique_identifier || 'N/A'}</Text>
+              <Text style={styles.businessCodeText}>
+                {business.unique_identifier || 'N/A'}
+              </Text>
             </View>
             <Text style={styles.cardDescription}>
               Keep this code secure. You&apos;ll need it to access the business dashboard.
             </Text>
-          </View>
-
-          {/* Google Sheets Integration Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <IconSymbol name="doc.text.fill" color={colors.secondary} size={24} />
-              <Text style={styles.cardTitle}>Google Sheets Integration</Text>
-            </View>
-            <Text style={styles.cardDescription}>
-              Connect your Google Sheet to automatically import and update your menu items and allergen information.
-            </Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Google Sheet URL</Text>
-              <TextInput
-                style={styles.input}
-                value={googleSheetUrl}
-                onChangeText={setGoogleSheetUrl}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSyncing}
-              />
-            </View>
-            <Pressable 
-              style={[styles.connectButton, isSyncing && styles.connectButtonDisabled]} 
-              onPress={handleSaveAndSyncMenu}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                <>
-                  <ActivityIndicator color={colors.card} size="small" />
-                  <Text style={styles.connectButtonText}>Syncing...</Text>
-                </>
-              ) : (
-                <>
-                  <IconSymbol name="link" color={colors.card} size={20} />
-                  <Text style={styles.connectButtonText}>Save & Sync Menu</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-
-          {/* Instructions Card */}
-          <View style={styles.instructionsCard}>
-            <View style={styles.cardHeader}>
-              <IconSymbol name="info.circle.fill" color={colors.card} size={24} />
-              <Text style={styles.cardTitle}>How to Set Up Your Sheet</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Your Google Sheet should have the following columns:
-            </Text>
-            <View style={styles.columnList}>
-              <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
-                <Text style={styles.columnText}>
-                  <Text style={styles.columnBold}>Name:</Text> Dish name
-                </Text>
-              </View>
-              <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
-                <Text style={styles.columnText}>
-                  <Text style={styles.columnBold}>Description:</Text> Brief description
-                </Text>
-              </View>
-              <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
-                <Text style={styles.columnText}>
-                  <Text style={styles.columnBold}>Category:</Text> Mains, Salads, Desserts, etc.
-                </Text>
-              </View>
-              <View style={styles.columnItem}>
-                <Text style={styles.columnBullet}>•</Text>
-                <Text style={styles.columnText}>
-                  <Text style={styles.columnBold}>Allergens:</Text> Comma-separated (nuts, gluten, dairy, etc.)
-                </Text>
-              </View>
-            </View>
           </View>
 
           {/* Stats Card */}
@@ -847,6 +890,7 @@ const styles = StyleSheet.create({
   },
   columnList: {
     gap: 8,
+    marginBottom: 12,
   },
   columnItem: {
     flexDirection: 'row',
@@ -868,6 +912,22 @@ const styles = StyleSheet.create({
   },
   columnBold: {
     fontWeight: '800',
+  },
+  instructionNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+    marginTop: 8,
+  },
+  instructionNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.card,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -917,7 +977,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
-    fontWeight: '500',
+    fontWeight: '500', 
   },
   versionText: {
     fontSize: 12,
