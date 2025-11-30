@@ -173,7 +173,7 @@ export default function ProfileScreen() {
       console.log('=== SYNC SUCCESS ===');
       console.log('Items created:', itemsCreated);
 
-      // Display success alert
+      // Display success alert with exact format requested
       Alert.alert('Success', 'Menu synced! ' + itemsCreated + ' items created.');
 
       console.log(`Menu sync completed successfully. ${itemsCreated} items created.`);
