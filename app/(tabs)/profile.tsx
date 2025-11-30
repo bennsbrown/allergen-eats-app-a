@@ -132,10 +132,10 @@ export default function ProfileScreen() {
         return;
       }
 
-      console.log('Sheet URL saved successfully, invoking sync_menu edge function...');
+      console.log('Sheet URL saved successfully, invoking sync-menu edge function...');
 
-      // 2. Invoke the Supabase Edge Function called sync_menu
-      const { data, error } = await supabase.functions.invoke('sync_menu', {
+      // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
+      const { data, error } = await supabase.functions.invoke('sync-menu', {
         body: { business_id: business.id }
       });
 
