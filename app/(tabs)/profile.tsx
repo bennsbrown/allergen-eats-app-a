@@ -116,7 +116,9 @@ export default function ProfileScreen() {
     setIsSyncing(true);
 
     try {
-      console.log('Saving sheet URL to business:', business.id);
+      console.log('=== SYNC MENU START ===');
+      console.log('Business ID:', business.id);
+      console.log('Sheet URL:', googleSheetUrl.trim());
 
       // 1. Update the business table with the sheet URL
       const { error: updateError } = await supabase
@@ -136,13 +138,18 @@ export default function ProfileScreen() {
         body: { business_id: business.id },
       });
 
-      console.log('Edge function response:', syncData);
-      console.log('Edge function error:', invokeError);
+      console.log('=== EDGE FUNCTION RESPONSE ===');
+      console.log('Response data:', JSON.stringify(syncData, null, 2));
+      console.log('Response error:', invokeError);
 
-      // Handle edge function errors
+      // Handle edge function invocation errors (network, timeout, etc.)
       if (invokeError) {
         console.error('Edge function invocation error:', invokeError);
-        throw new Error(`Sync failed: ${invokeError.message}`);
+        Alert.alert(
+          'Sync Error',
+          `Failed to sync menu: ${invokeError.message || 'Unknown error'}`
+        );
+        return;
       }
 
       // Handle errors returned in the response body
@@ -166,26 +173,35 @@ export default function ProfileScreen() {
       }
 
       // 3. Show success message with items created count
-      const itemsCreated = syncData?.items_created || 0;
+      const itemsCreated = syncData?.items_created ?? 0;
       
+      console.log('=== SYNC SUCCESS ===');
+      console.log('Items created:', itemsCreated);
+
+      // Handle edge case where sync completes but no items were created
       if (itemsCreated === 0) {
         Alert.alert(
           'Sync Complete',
-          'Menu synced, but no items were created. Please check your Google Sheet format.'
+          'Menu synced, but no items were created. Please check your Google Sheet format and ensure it has valid menu items.'
         );
       } else {
+        // Show success with emoji and item count
         Alert.alert(
           'Success! 🎉',
-          `Menu synced successfully!\n\n${itemsCreated} item${itemsCreated !== 1 ? 's' : ''} updated.`
+          `Menu synced successfully!\n\n${itemsCreated} item${itemsCreated !== 1 ? 's' : ''} ${itemsCreated !== 1 ? 'were' : 'was'} updated.`
         );
       }
 
-      console.log(`Menu sync completed. ${itemsCreated} items created.`);
+      console.log(`Menu sync completed successfully. ${itemsCreated} items created.`);
     } catch (error: any) {
       console.error('Error in handleSaveAndSyncMenu:', error);
-      Alert.alert('Sync Error', error.message || 'An error occurred while syncing the menu. Please try again.');
+      Alert.alert(
+        'Sync Error',
+        error.message || 'An error occurred while syncing the menu. Please try again.'
+      );
     } finally {
       setIsSyncing(false);
+      console.log('=== SYNC MENU END ===');
     }
   };
 
