@@ -29,6 +29,16 @@ export default function ProfileScreen() {
   const [lastDebug, setLastDebug] = useState('');
   const [syncDebug, setSyncDebug] = useState('');
 
+  // Business code constant for QR generation
+  const businessCode = business?.unique_identifier || "";
+
+  // QR image URL (hosted QR, no libraries required)
+  const qrImageUrl = businessCode
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        businessCode
+      )}`
+    : "";
+
   const handleLogin = async () => {
     setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
@@ -485,6 +495,61 @@ export default function ProfileScreen() {
               Keep this code secure. You&apos;ll need it to access the business dashboard.
             </Text>
           </View>
+
+          {/* NEW: QR Code Generator Card (Hosted API) */}
+          {qrImageUrl ? (
+            <View
+              style={{
+                marginTop: 16,
+                padding: 16,
+                borderRadius: 16,
+                backgroundColor: "#FFFFFF",
+                shadowColor: "#000",
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+                alignItems: "center"
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  marginBottom: 4
+                }}
+              >
+                QR Code for This Business
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: "#666",
+                  textAlign: "center",
+                  marginBottom: 12
+                }}
+              >
+                Scan this QR to view the customer menu for this business.
+              </Text>
+
+              <Image
+                source={{ uri: qrImageUrl }}
+                style={{ width: 200, height: 200 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: "#555",
+                  marginTop: 8
+                }}
+              >
+                Business code: {businessCode}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Stats Card */}
           <View style={styles.card}>
