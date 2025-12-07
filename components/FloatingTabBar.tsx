@@ -31,6 +31,8 @@ interface FloatingTabBarProps {
   containerWidth?: number;
   borderRadius?: number;
   bottomMargin?: number;
+  onCustomerPress?: () => void;
+  onBusinessPress?: () => void;
 }
 
 interface TabItemProps {
@@ -80,14 +82,25 @@ export default function FloatingTabBar({
   containerWidth = Dimensions.get('window').width - 32,
   borderRadius = 24,
   bottomMargin = 16,
+  onCustomerPress,
+  onBusinessPress,
 }: FloatingTabBarProps) {
   const { colors: themeColors } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleTabPress = (route: string) => {
-    console.log('Tab pressed:', route);
-    router.push(route);
+  const handleTabPress = (tab: TabBarItem) => {
+    console.log('Tab pressed:', tab.name);
+    
+    // Use custom handlers if provided
+    if (tab.name === '(home)' && onCustomerPress) {
+      onCustomerPress();
+    } else if (tab.name === 'profile' && onBusinessPress) {
+      onBusinessPress();
+    } else {
+      // Default navigation
+      router.push(tab.route);
+    }
   };
 
   // Determine which tab is active based on pathname
@@ -127,7 +140,7 @@ export default function FloatingTabBar({
               key={tab.name}
               tab={tab}
               isActive={isActive}
-              onPress={() => handleTabPress(tab.route)}
+              onPress={() => handleTabPress(tab)}
             />
           );
         })}
