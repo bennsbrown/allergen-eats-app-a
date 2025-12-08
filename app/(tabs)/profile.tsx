@@ -34,7 +34,7 @@ export default function ProfileScreen() {
 
   // QR image URL (hosted QR, no libraries required)
   const qrImageUrl = businessCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://eatwitheaze.netlify.app?${encodeURIComponent(
         businessCode
       )}`
     : "";
