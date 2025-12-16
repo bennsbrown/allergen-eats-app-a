@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  Pressable, 
+  Pressable,
   TextInput,
   Alert,
   Image,
@@ -33,10 +33,11 @@ export default function ProfileScreen() {
   const businessCode = business?.unique_identifier || "";
 
   // QR image URL (hosted QR, no libraries required)
+  const businessUrl = `https://eatwitheaze.netlify.app?${encodeURIComponent(
+    businessCode
+  )}`
   const qrImageUrl = businessCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://eatwitheaze.netlify.app?${encodeURIComponent(
-        businessCode
-      )}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${businessUrl}`
     : "";
 
   const handleLogin = async () => {
@@ -63,7 +64,7 @@ export default function ProfileScreen() {
         .eq('unique_identifier', normalizedCode)
         .maybeSingle();
 
-      if (error) { 
+      if (error) {
         setLastDebug('Supabase error: ' + error.message);
         Alert.alert('Supabase error', error.message);
         console.error('Supabase query error:', error);
@@ -88,7 +89,7 @@ export default function ProfileScreen() {
       setLastDebug('Navigating to dashboard/profile');
       Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
       console.log('Business login successful');
-    } catch (error: any) { 
+    } catch (error: any) {
       console.error('Error in handleLogin:', error);
       setLastDebug('Unexpected error: ' + error.message);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -167,10 +168,10 @@ export default function ProfileScreen() {
       if (data?.error) {
         console.error('Edge function returned error:', data.error);
         setSyncDebug('Edge function returned error: ' + data.error);
-        
+
         // Check for specific error messages
         const errorMessage = data.error.toLowerCase();
-        
+
         if (errorMessage.includes('no menu') || errorMessage.includes('menu not found')) {
           Alert.alert('Error', 'No menu found. Please check your Google Sheet and try again.');
         } else if (errorMessage.includes('no sheet') || errorMessage.includes('sheet_url') || errorMessage.includes('sheet url')) {
@@ -183,7 +184,7 @@ export default function ProfileScreen() {
 
       // 3. Show success message with items created count
       const itemsCreated = data?.items_created ?? 0;
-      
+
       console.log('=== SYNC SUCCESS ===');
       console.log('Items created:', itemsCreated);
       setSyncDebug('Success! Menu synced. ' + itemsCreated + ' items created.');
@@ -434,10 +435,10 @@ export default function ProfileScreen() {
                     style={styles.qrCodeLogoImage}
                     resizeMode="contain"
                   />
-                </View> 
+                </View>
                 <View style={styles.qrCodeWrapper}>
                   <QRCode
-                    value={generateMenuUrl()}
+                    value={businessUrl}
                     size={220}
                     color={colors.primary}
                     backgroundColor="#FFFFFF"
@@ -495,62 +496,6 @@ export default function ProfileScreen() {
               Keep this code secure. You&apos;ll need it to access the business dashboard.
             </Text>
           </View>
-
-          {/* NEW: QR Code Generator Card (Hosted API) */}
-          {qrImageUrl ? (
-            <View
-              style={{
-                marginTop: 16,
-                padding: 16,
-                borderRadius: 16,
-                backgroundColor: "#FFFFFF",
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
-                alignItems: "center"
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  marginBottom: 4
-                }}
-              >
-                QR Code for This Business
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: "#666",
-                  textAlign: "center",
-                  marginBottom: 12
-                }}
-              >
-                Scan this QR to view the customer menu for this business.
-              </Text>
-
-              <Image
-                source={{ uri: qrImageUrl }}
-                style={{ width: 200, height: 200 }}
-                resizeMode="contain"
-              />
-
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: "#555",
-                  marginTop: 8
-                }}
-              >
-                Business code: {businessCode}
-              </Text>
-            </View>
-          ) : null}
-
           {/* Stats Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -1052,7 +997,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
-    fontWeight: '500', 
+    fontWeight: '500',
   },
   versionText: {
     fontSize: 12,
