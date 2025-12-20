@@ -45,53 +45,46 @@ export default function HomeScreen() {
       console.log('Loading menu for code:', code);
 
       try {
-        // Fetch business by unique_identifier
-        const { data: business, error: bizError } = await supabase
+      // Fetch business by qr_slug first, then fall back to unique_identifier (legacy)
+let business: { id: number; name: string; unique_identifier?: string } | null = null;
+
+// 1) Try qr_slug = code
+const { data: bySlug, error: slugErr } = await supabase
   .from('business')
-  .select('id, name, qr_slug')
+  .select('id, name, unique_identifier')
   .eq('qr_slug', code)
   .maybeSingle();
 
-        if (bizError) {
-          console.error('Error fetching business:', bizError);
-          setError('Failed to load menu. Please try again.');
-          setLoading(false);
-          return;
-        }
+if (slugErr) {
+  console.error('Error fetching business by qr_slug:', slugErr);
+}
 
-        if (!business) {
-          console.log('No business found for code:', code);
-          setError('Menu link is invalid. Please check the QR code and try again.');
-          setLoading(false);
-          return;
-        }
+// 2) If not found, try unique_identifier = code (legacy QR codes)
+if (!bySlug) {
+  const { data: byUnique, error: uniqueErr } = await supabase
+    .from('business')
+    .select('id, name, unique_identifier')
+    .eq('unique_identifier', code)
+    .maybeSingle();
 
-        console.log('Business found:', business.name);
-        setBusinessName(business.name);
+  if (uniqueErr) {
+    console.error('Error fetching business by unique_identifier:', uniqueErr);
+  }
 
-        // Fetch menu items for this business
-        const { data: menuItems, error: itemErr } = await supabase
-          .from('menu_item')
-          .select('id, name, category')
-          .eq('business_id', business.id)
-          .order('category');
+  business = byUnique ?? null;
+} else {
+  business = bySlug;
+}
 
-        if (itemErr) {
-          console.error('Error fetching menu items:', itemErr);
-          setError('Failed to load menu items. Please try again.');
-          setLoading(false);
-          return;
-        }
+if (!business) {
+  console.log('No business found for code:', code);
+  setError('Menu link is invalid. Please check the QR code and try again.');
+  setLoading(false);
+  return;
+}
 
-        console.log('Menu items loaded:', menuItems?.length || 0);
-        setItems(menuItems || []);
-        setLoading(false);
-      } catch (err: any) {
-        console.error('Unexpected error loading menu:', err);
-        setError('An unexpected error occurred. Please try again.');
-        setLoading(false);
-      }
-    };
+setBusinessName(business.name);
+
 
     loadMenu();
   }, [code]);
