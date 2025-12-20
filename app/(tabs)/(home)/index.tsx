@@ -47,10 +47,10 @@ export default function HomeScreen() {
       try {
         // Fetch business by unique_identifier
         const { data: business, error: bizError } = await supabase
-          .from('business')
-          .select('id, name, unique_identifier')
-          .eq('unique_identifier', code)
-          .maybeSingle();
+  .from('business')
+  .select('id, name, qr_slug')
+  .eq('qr_slug', code)
+  .maybeSingle();
 
         if (bizError) {
           console.error('Error fetching business:', bizError);
