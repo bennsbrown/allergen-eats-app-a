@@ -84,7 +84,13 @@ if (!business) {
 }
 
 setBusinessName(business.name);
-
+      } catch (err: any) {
+        console.error('Error loading menu:', err);
+        setError('Failed to load menu. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadMenu();
   }, [code]);
