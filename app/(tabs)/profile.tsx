@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
@@ -17,6 +17,11 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
+import * as Clipboard from 'expo-clipboard';
+import * as WebBrowser from 'expo-web-browser';
+import { Share } from 'react-native';
 import { supabase } from '@/app/integrations/supabase/client';
 import { useBusiness } from '@/hooks/useBusiness';
 
@@ -33,12 +38,96 @@ export default function ProfileScreen() {
   const businessCode = business?.unique_identifier || "";
 
   // QR image URL (hosted QR, no libraries required)
-  const businessUrl = `https://eatwitheaze.netlify.app?${encodeURIComponent(
-    businessCode
-  )}`
-  const qrImageUrl = businessCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${businessUrl}`
-    : "";
+  const businessUrl = businessCode
+    ? `https://eatwitheaze.netlify.app?code=${encodeURIComponent(businessCode)}`
+    : '';
+
+  const qrImageUrl = businessUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        businessUrl
+      )}`
+    : '';
+
+  const handleCopyLink = async () => {
+    if (!businessUrl) {
+      Alert.alert('No business code', 'Please set a business code before copying the link.');
+      return;
+    }
+
+    await Clipboard.setStringAsync(businessUrl);
+    Alert.alert('Copied', 'Menu link copied to clipboard.');
+  };
+
+  const handleDownloadQR = async () => {
+    if (!qrImageUrl) {
+      Alert.alert('No QR available', 'Please set a business code to generate the QR code.');
+      return;
+    }
+    // Open the hosted QR image in the browser so the user can save/download it
+    await WebBrowser.openBrowserAsync(qrImageUrl);
+  };
+
+  const qrRef = useRef<any>(null);
+
+  const handleSaveToPhotos = async () => {
+    if (!businessUrl) {
+      Alert.alert('No QR available', 'Please set a business code to generate the QR code.');
+      return;
+    }
+
+    // Request media library permissions
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Permission to access photos is required to save the QR image.');
+      return;
+    }
+
+    try {
+      if (!qrRef.current?.toDataURL) {
+        Alert.alert('Unsupported', 'Unable to generate QR image from this device.');
+        return;
+      }
+
+      // Generate base64 PNG data from the QR component
+      qrRef.current.toDataURL(async (base64Data: string) => {
+        try {
+          const filename = `qr-${businessCode || 'menu'}.png`;
+          const fileUri = (FileSystem as any).cacheDirectory + filename;
+
+          // Write base64 to a temporary file
+          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+            encoding: (FileSystem as any).EncodingType.Base64,
+          });
+
+          // Save to photo library
+          const asset = await MediaLibrary.createAssetAsync(fileUri);
+          await MediaLibrary.createAlbumAsync('Eaze', asset, false).catch(() => null);
+
+          Alert.alert('Saved', 'QR code saved to your Photos.');
+        } catch (err: any) {
+          console.error('Save QR error:', err);
+          Alert.alert('Error', 'Failed to save QR to photos.');
+        }
+      });
+    } catch (err: any) {
+      console.error('SaveToPhotos error:', err);
+      Alert.alert('Error', 'Failed to generate QR image.');
+    }
+  };
+
+  const handleShareLink = async () => {
+    if (!businessUrl) {
+      Alert.alert('No business code', 'Please set a business code before sharing.');
+      return;
+    }
+
+    try {
+      await Share.share({ message: businessUrl });
+    } catch (error: any) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Unable to open share dialog.');
+    }
+  };
 
   const handleLogin = async () => {
     setLastDebug('Login button pressed');
@@ -203,12 +292,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const generateMenuUrl = () => {
-    const code = business?.unique_identifier || 'DEMO2024';
-    return `https://natively.dev/?code=${code}`;
-  };
-
-  const handleNavigateToTerms = () => {
+const handleNavigateToTerms = () => {
     console.log('Navigating to Terms & Conditions');
     router.push('/terms-acceptance');
   };
@@ -438,6 +522,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.qrCodeWrapper}>
                   <QRCode
+                    ref={qrRef}
                     value={businessUrl}
                     size={220}
                     color={colors.primary}
@@ -449,31 +534,31 @@ export default function ProfileScreen() {
                   <Text style={styles.qrCodeBrandText}>Scan to view menu</Text>
                 </View>
               </View>
-              <Text style={styles.qrCodeUrl}>{generateMenuUrl()}</Text>
+              <Text style={styles.qrCodeUrl}>{businessUrl}</Text>
             </View>
             <View style={styles.qrActionsContainer}>
               <Pressable
-                style={styles.qrActionButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Download QR Code',
-                    'In production, this would download the QR code as an image.'
-                  );
-                  console.log('Download QR code');
-                }}
+                style={[styles.qrActionButton, !businessUrl && styles.qrActionButtonDisabled]}
+                onPress={handleCopyLink}
+                disabled={!businessUrl}
+              >
+                <IconSymbol name="doc.on.doc.fill" color={colors.card} size={20} />
+                <Text style={styles.qrActionButtonText}>Copy Link</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.qrActionButton, !businessUrl && styles.qrActionButtonDisabled]}
+                onPress={handleSaveToPhotos}
+                disabled={!businessUrl}
               >
                 <IconSymbol name="arrow.down.circle.fill" color={colors.card} size={20} />
-                <Text style={styles.qrActionButtonText}>Download</Text>
+                <Text style={styles.qrActionButtonText}>Save</Text>
               </Pressable>
+
               <Pressable
-                style={[styles.qrActionButton, styles.qrActionButtonSecondary]}
-                onPress={() => {
-                  Alert.alert(
-                    'Share QR Code',
-                    'In production, this would open the share dialog.'
-                  );
-                  console.log('Share QR code');
-                }}
+                style={[styles.qrActionButton, styles.qrActionButtonSecondary, !businessUrl && styles.qrActionButtonDisabled]}
+                onPress={handleShareLink}
+                disabled={!businessUrl}
               >
                 <IconSymbol name="square.and.arrow.up.fill" color={colors.card} size={20} />
                 <Text style={styles.qrActionButtonText}>Share</Text>
@@ -801,6 +886,9 @@ const styles = StyleSheet.create({
     gap: 8,
     boxShadow: '0px 2px 6px rgba(56, 189, 248, 0.3)',
     elevation: 2,
+  },
+  qrActionButtonDisabled: {
+    opacity: 0.5,
   },
   qrActionButtonSecondary: {
     backgroundColor: colors.secondary,

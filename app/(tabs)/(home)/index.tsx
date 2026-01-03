@@ -101,6 +101,9 @@ setBusinessName(business.name);
     );
   }, [items, searchQuery]);
 
+  // Apply dietary / preferences filters (live) — enable debug to surface missing fields and decisions
+  const filteredItems = useFilteredMenu(searchFilteredItems, selectedFilters, true);
+
   const toggleFilter = (filterId: string) => {
     setSelectedFilters(prev => {
       if (prev.includes(filterId)) {
@@ -150,31 +153,8 @@ setBusinessName(business.name);
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <>
-        {Platform.OS === 'ios' && (
-          <Stack.Screen
-            options={{
-              title: 'Allergen Menu',
-              headerRight: renderHeaderRight,
-            }}
-          />
-        )}
-        <View style={styles.container}>
-          <View style={styles.centerContainer}>
-            <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={64} />
-            <Text style={styles.errorTitle}>Unable to Load Menu</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.errorButton} onPress={() => router.push('/')}>
-              <Text style={styles.errorButtonText}>Go Back</Text>
-            </Pressable>
-          </View>
-        </View>
-      </>
-    );
-  }
+  // NOTE: Removed full-screen error state so the customer menu always renders.
+  // Any load errors will now show an inline banner in the main menu view.
 
   // Empty menu state
   if (items.length === 0) {
@@ -252,6 +232,14 @@ setBusinessName(business.name);
             />
           </View>  
 
+          {/* Inline error banner (shows if there was a non-fatal error loading menu) */}
+          {error ? (
+            <View style={styles.inlineError}>
+              <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
+              <Text style={styles.inlineErrorText}>{error}</Text>
+            </View>
+          ) : null}
+
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
@@ -278,24 +266,81 @@ setBusinessName(business.name);
             )}
           </View>
 
+          {/* Filters */}
+          <View style={styles.preferencesCard}>
+            <Text style={[styles.preferencesHeading, styles.preferencesHeadingInner]}>Preferences</Text>
+            <Text style={[styles.preferencesSubtitle, styles.preferencesSubtitleInner]}>Select dietary preferences</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.preferencesRow}
+              >
+              {PREFERENCES_FILTERS.map(f => {
+                const active = selectedFilters.includes(f.id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive]}
+                    onPress={() => toggleFilter(f.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {({ pressed }) => (
+                      <>
+                        <IconSymbol name={f.icon as any} color={active || pressed ? colors.card : colors.primary} size={14} style={styles.chipIconInline} />
+                        <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>{f.name}</Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Dietary Needs (no pale background) */}
+          <View style={styles.dietaryContainer}>
+            <Text style={[styles.preferencesHeading, styles.headingAligned]}>Dietary Needs</Text>
+            <Text style={[styles.preferencesSubtitleSmall, styles.subHeadingAligned]}>Select allergens to avoid</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dietaryRow}
+            >
+              {DIETARY_NEEDS_FILTERS.map(f => {
+                const active = selectedFilters.includes(f.id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive, styles.chipNoIcon]}
+                    onPress={() => toggleFilter(f.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {({ pressed }) => (
+                      <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>{f.name}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* Menu Items */}
           <View style={styles.menuSection}>
             <Text style={styles.sectionTitle}>
               {searchQuery ? 'Search Results' : 'Menu'}
             </Text>
-            {searchFilteredItems.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
                 <Text style={styles.emptyText}>
-                  No dishes found matching your search
+                  No dishes match your search or selected filters
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Try a different search term
+                  Try a different search term or unselect a filter
                 </Text>
               </View>
             ) : (
               <FlatList
-                data={searchFilteredItems}
+                data={filteredItems}
                 keyExtractor={(item) => String(item.id)}
                 scrollEnabled={false}
                 renderItem={({ item }) => (
@@ -487,6 +532,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
     marginBottom: 12,
+    marginLeft: 20, // align the "Menu" title with the Welcome card content
   },
   menuCard: {
     backgroundColor: colors.card,
@@ -599,6 +645,108 @@ const styles = StyleSheet.create({
   },
   headerButtonContainer: {
     padding: 6,
+  },
+  inlineError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.highlight,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  inlineErrorText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  /* Filters */
+  preferencesCard: {
+    backgroundColor: colors.highlight,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  preferencesHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  preferencesSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 10,
+    fontWeight: '600',
+  },
+  preferencesSubtitleSmall: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 10,
+    fontWeight: '600',
+  },
+  preferencesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 8,
+    paddingLeft: 6, // align chips with preferences heading inside the card
+    marginBottom: 8,
+  },
+  dietaryContainer: {
+    marginBottom: 16,
+  },
+  dietaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 8,
+    paddingLeft: 20, // align dietary chips with the welcome content
+  },
+  /* alignment helpers to match welcome left inset */
+  headingAligned: {
+    marginLeft: 20,
+  },
+  subHeadingAligned: {
+    marginLeft: 20,
+  },
+  preferencesHeadingInner: {
+    marginLeft: 6,
+  },
+  preferencesSubtitleInner: {
+    marginLeft: 6,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    marginRight: 8,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  chipTextActive: {
+    color: colors.card,
+  },
+  chipNoIcon: {
+    paddingHorizontal: 16,
+  },
+  chipIconInline: {
+    marginRight: 8,
   },
   termsButton: {
     flexDirection: 'row',
