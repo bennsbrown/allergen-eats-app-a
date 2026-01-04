@@ -147,7 +147,7 @@ export default function ProfileScreen() {
       Alert.alert('DEBUG', 'Code entered: ' + normalizedCode);
 
       // Query the business table for the entered code
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('business')
         .select('*')
         .eq('unique_identifier', normalizedCode)
@@ -221,7 +221,7 @@ export default function ProfileScreen() {
       setSyncDebug('Starting sync for business ID: ' + business.id);
 
       // 1. Save the Google Sheet URL to business.sheet_url in Supabase
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('business')
         .update({ sheet_url: googleSheetUrl.trim() })
         .eq('id', business.id);

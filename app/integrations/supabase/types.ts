@@ -9,7 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      business: {
+        Row: {
+          id: number
+          unique_identifier: string
+          name: string
+          sheet_url: string | null
+          created_at: string | null
+        }
+        Insert: {
+          unique_identifier: string
+          name?: string | null
+          sheet_url?: string | null
+        }
+        Update: {
+          unique_identifier?: string
+          name?: string | null
+          sheet_url?: string | null
+        }
+      }
+      menu_item: {
+        Row: {
+          id: number
+          business_id: number
+          name: string
+          category: string | null
+          description: string | null
+          allergens: string[] | null
+          preferences: string[] | null
+          created_at: string | null
+        }
+        Insert: {
+          business_id: number
+          name: string
+          category?: string | null
+          description?: string | null
+          allergens?: string[] | null
+          preferences?: string[] | null
+        }
+        Update: {
+          business_id?: number
+          name?: string
+          category?: string | null
+          description?: string | null
+          allergens?: string[] | null
+          preferences?: string[] | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

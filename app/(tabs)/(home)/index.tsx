@@ -84,6 +84,32 @@ if (!business) {
 }
 
 setBusinessName(business.name);
+
+        // 2) Fetch menu items for this business
+        try {
+          const { data: menuItems, error: menuErr } = await supabase
+            .from('menu_item')
+            .select('id, name, category, allergens')
+            .eq('business_id', business.id)
+            .order('category', { ascending: true });
+
+          if (menuErr) {
+            console.error('Error fetching menu items:', menuErr);
+            setError('Failed to load menu items.');
+            setItems([]);
+          } else {
+            // Ensure allergens is an array for each item
+            const normalized = (menuItems || []).map((it: any) => ({
+              ...it,
+              allergens: Array.isArray(it?.allergens) ? it.allergens : (it?.allergens ? String(it.allergens).split(',').map((s: string) => s.trim()) : []),
+            }));
+            setItems(normalized);
+          }
+        } catch (err) {
+          console.error('Unexpected error fetching menu items:', err);
+          setError('Failed to load menu items.');
+          setItems([]);
+        }
       } catch (err: any) {
         console.error('Error loading menu:', err);
         setError('Failed to load menu. Please try again later.');
