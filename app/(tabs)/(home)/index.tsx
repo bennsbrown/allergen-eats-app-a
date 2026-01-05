@@ -22,6 +22,13 @@ import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/app/integrations/supabase/client';
 
+interface Business {
+  id: number;
+  name: string;
+  unique_identifier?: string;
+  qr_slug?: string;
+}
+
 export default function HomeScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -40,7 +47,7 @@ export default function HomeScreen() {
       if (!effectiveCode) {
         console.warn('No code param provided — falling back to first business');
         try {
-          const { data: firstBusiness } = await supabase.from('business').select('id, name, unique_identifier').limit(1).maybeSingle();
+          const { data: firstBusiness } = await supabase.from('business').select('id, name, unique_identifier, qr_slug').limit(1).maybeSingle<Business>();
           if (firstBusiness) {
             effectiveCode = firstBusiness.qr_slug ?? firstBusiness.unique_identifier ?? String(firstBusiness.id);
             console.log('Falling back to business id:', firstBusiness.id, 'name:', firstBusiness.name);
@@ -50,30 +57,38 @@ export default function HomeScreen() {
         }
       }
 
+      // Early return if still no code available
+      if (!effectiveCode) {
+        console.error('No code available to load menu');
+        setError('No menu code provided.');
+        setLoading(false);
+        return;
+      }
+
       console.log('Loading menu for code:', effectiveCode);
 
       try {
       // Fetch business by qr_slug first, then fall back to unique_identifier (legacy)
-let business: { id: number; name: string; unique_identifier?: string } | null = null;
+let business: Business | null = null;
 
-// 1) Try qr_slug = code
+// 1) Try qr_slug = effectiveCode
 const { data: bySlug, error: slugErr } = await supabase
   .from('business')
-  .select('id, name, unique_identifier')
-  .eq('qr_slug', code)
-  .maybeSingle();
+  .select('id, name, unique_identifier, qr_slug')
+  .eq('qr_slug', effectiveCode)
+  .maybeSingle<Business>();
 
 if (slugErr) {
   console.error('Error fetching business by qr_slug:', slugErr);
 }
 
-// 2) If not found, try unique_identifier = code (legacy QR codes)
+// 2) If not found, try unique_identifier = effectiveCode (legacy QR codes)
 if (!bySlug) {
   const { data: byUnique, error: uniqueErr } = await supabase
     .from('business')
-    .select('id, name, unique_identifier')
-    .eq('unique_identifier', code)
-    .maybeSingle();
+    .select('id, name, unique_identifier, qr_slug')
+    .eq('unique_identifier', effectiveCode)
+    .maybeSingle<Business>();
 
   if (uniqueErr) {
     console.error('Error fetching business by unique_identifier:', uniqueErr);
@@ -85,7 +100,7 @@ if (!bySlug) {
 }
 
 if (!business) {
-  console.log('No business found for code:', code);
+  console.log('No business found for code:', effectiveCode);
   setError('Menu link is invalid. Please check the QR code and try again.');
   setLoading(false);
   return;
