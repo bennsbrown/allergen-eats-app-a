@@ -60,7 +60,7 @@ let business: { id: number; name: string; unique_identifier?: string } | null = 
 const { data: bySlug, error: slugErr } = await supabase
   .from('business')
   .select('id, name, unique_identifier')
-  .eq('qr_slug', effectiveCode)
+  .eq('qr_slug', code)
   .maybeSingle();
 
 if (slugErr) {
@@ -72,7 +72,7 @@ if (!bySlug) {
   const { data: byUnique, error: uniqueErr } = await supabase
     .from('business')
     .select('id, name, unique_identifier')
-    .eq('unique_identifier', effectiveCode)
+    .eq('unique_identifier', code)
     .maybeSingle();
 
   if (uniqueErr) {
@@ -96,24 +96,22 @@ setBusinessName(business.name);
         // 2) Fetch menu items for this business
         try {
           const { data: menuItems, error: menuErr } = await supabase
-  .from('menu_item_public')
-  .select('id, name, category, allergens, preferences')
-  .eq('business_id', business.id)
-  .order('category', { ascending: true });
+            .from('menu_item')
+            .select('id, name, category')
+            .eq('business_id', business.id)
+            .order('category', { ascending: true });
 
-if (menuErr) {
-  console.error('Error fetching menu items:', menuErr);
-  setError('Failed to load menu items.');
-  setItems([]);
-} else {
-  // View already returns arrays (or empty arrays). Just add safe defaults.
-  const normalized = (menuItems || []).map((it: any) => ({
-    ...it,
-    allergens: Array.isArray(it?.allergens) ? it.allergens : [],
-    preferences: Array.isArray(it?.preferences) ? it.preferences : [],
-  }));
-  setItems(normalized);
-}
+          if (menuErr) {
+            console.error('Error fetching menu items:', menuErr);
+            setError('Failed to load menu items.');
+            setItems([]);
+          } else {
+            // Ensure allergens is an array for each item and normalize to lowercase
+            const normalized = (menuItems || []).map((it: any) => ({
+              ...it,
+              allergens: (Array.isArray(it?.allergens) ? it.allergens : (it?.allergens ? String(it.allergens).split(',').map((s: string) => s.trim()) : [])).map((a: string) => (a || '').toString().toLowerCase().trim()),
+            }));
+            setItems(normalized);
           }
         } catch (err) {
           console.error('Unexpected error fetching menu items:', err);
