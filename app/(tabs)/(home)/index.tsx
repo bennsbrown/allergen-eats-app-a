@@ -36,13 +36,21 @@ export default function HomeScreen() {
   // Load menu data based on QR code
   useEffect(() => {
     const loadMenu = async () => {
-      if (!code) {
-        setError('No menu code provided. Please scan a QR code to view the menu.');
-        setLoading(false);
-        return;
+      let effectiveCode = code;
+      if (!effectiveCode) {
+        console.warn('No code param provided — falling back to first business');
+        try {
+          const { data: firstBusiness } = await supabase.from('business').select('id, name, unique_identifier').limit(1).maybeSingle();
+          if (firstBusiness) {
+            effectiveCode = firstBusiness.qr_slug ?? firstBusiness.unique_identifier ?? String(firstBusiness.id);
+            console.log('Falling back to business id:', firstBusiness.id, 'name:', firstBusiness.name);
+          }
+        } catch (err) {
+          console.warn('Error fetching fallback business:', err);
+        }
       }
 
-      console.log('Loading menu for code:', code);
+      console.log('Loading menu for code:', effectiveCode);
 
       try {
       // Fetch business by qr_slug first, then fall back to unique_identifier (legacy)
@@ -89,7 +97,7 @@ setBusinessName(business.name);
         try {
           const { data: menuItems, error: menuErr } = await supabase
             .from('menu_item')
-            .select('id, name, category, allergens')
+            .select('id, name, category')
             .eq('business_id', business.id)
             .order('category', { ascending: true });
 
@@ -98,10 +106,10 @@ setBusinessName(business.name);
             setError('Failed to load menu items.');
             setItems([]);
           } else {
-            // Ensure allergens is an array for each item
+            // Ensure allergens is an array for each item and normalize to lowercase
             const normalized = (menuItems || []).map((it: any) => ({
               ...it,
-              allergens: Array.isArray(it?.allergens) ? it.allergens : (it?.allergens ? String(it.allergens).split(',').map((s: string) => s.trim()) : []),
+              allergens: (Array.isArray(it?.allergens) ? it.allergens : (it?.allergens ? String(it.allergens).split(',').map((s: string) => s.trim()) : [])).map((a: string) => (a || '').toString().toLowerCase().trim()),
             }));
             setItems(normalized);
           }
@@ -374,7 +382,7 @@ setBusinessName(business.name);
               <FlatList
                 data={filteredItems}
                 keyExtractor={(item) => String(item.id)}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 renderItem={({ item }) => (
                   <View style={styles.menuCard}>
                     <View style={styles.menuCardContent}>
@@ -386,6 +394,27 @@ setBusinessName(business.name);
                           </View>
                         )}
                       </View>
+                      {/* Allergens shown as chips — tappable to toggle filters */}
+                      {Array.isArray(item.allergens) && item.allergens.length > 0 ? (
+                        <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+                          {item.allergens.map((a: string) => {
+                            const id = String(a).toLowerCase();
+                            const active = selectedFilters.includes(id);
+                            return (
+                              <Pressable
+                                key={id}
+                                onPress={() => toggleFilter(id)}
+                                style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive, styles.chipNoIcon]}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                {({ pressed }) => (
+                                  <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>{id.charAt(0).toUpperCase() + id.slice(1)}</Text>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ) : null}
                     </View>
                   </View>
                 )}
