@@ -35,7 +35,7 @@ export default function ProfileScreen() {
   const [syncDebug, setSyncDebug] = useState('');
 
   // Business code constant for QR generation
-  const businessCode = business?.unique_identifier || "";
+  const businessCode = business?.qr_slug || "";
 
   // QR image URL (hosted QR, no libraries required)
   const businessUrl = businessCode
