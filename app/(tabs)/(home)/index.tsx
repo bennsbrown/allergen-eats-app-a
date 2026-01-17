@@ -29,12 +29,21 @@ type RawMenuItem = {
   id: number;
   name: string;
   category?: string | null;
-  menu_item_allergens?: Array<{
-    allergens?: { id: number; name: string } | null;
-  }> | null;
-  menu_item_preferences?: Array<{
-    preferences?: { id: number; name: string } | null;
-  }> | null;
+
+  // Supabase sometimes returns these as array, null, or even an object depending on relationships / joins
+  menu_item_allergens?:
+    | Array<{ allergens?: { id: number; name: string } | null }>
+    | { allergens?: { id: number; name: string } | null }
+    | null;
+
+  menu_item_preferences?:
+    | Array<{ preferences?: { id: number; name: string } | null }>
+    | { preferences?: { id: number; name: string } | null }
+    | null;
+
+  // Optional fallback if you ever store preferences directly as text/array later
+  preferences?: string[] | string | null;
+  allergens?: string[] | string | null;
 };
 
 // Flattened shape used by UI + filters
@@ -49,36 +58,41 @@ type MenuItem = {
 const token = (v: unknown) => String(v ?? '').toLowerCase().trim();
 const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
 
+// Turn null / object / array into a safe array
+const asArray = <T,>(v: T | T[] | null | undefined): T[] => {
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+};
+
 function flattenItem(raw: RawMenuItem): MenuItem {
-  const allergenRows = Array.isArray(raw.menu_item_allergens)
-    ? raw.menu_item_allergens
-    : [];
+  // Joined allergens (safe)
+  const allergenJoin = asArray(raw.menu_item_allergens);
+  const allergensFromJoin = allergenJoin
+    .map(x => token((x as any)?.allergens?.name))
+    .filter(Boolean);
 
-  const preferenceRows = Array.isArray(raw.menu_item_preferences)
-    ? raw.menu_item_preferences
-    : [];
+  // Joined preferences (safe)
+  const prefJoin = asArray(raw.menu_item_preferences);
+  const prefsFromJoin = prefJoin
+    .map(x => token((x as any)?.preferences?.name))
+    .filter(Boolean);
 
-  const allergens = allergenRows.map(x => token(x?.allergens?.name));
-  const preferences = preferenceRows.map(x => token(x?.preferences?.name));
+  // Optional fallbacks if you ever store plain preferences/allergens on the row
+  const prefsFallback = asArray(raw.preferences as any)
+    .flatMap(x => token(x).split(','))
+    .filter(Boolean);
+
+  const allergensFallback = asArray(raw.allergens as any)
+    .flatMap(x => token(x).split(','))
+    .filter(Boolean);
 
   return {
     id: raw.id,
     name: raw.name,
     category: raw.category ?? null,
-    allergens: uniq(allergens),
-    preferences: uniq(preferences),
+    allergens: uniq([...allergensFromJoin, ...allergensFallback]),
+    preferences: uniq([...prefsFromJoin, ...prefsFallback]),
   };
-}
-
-
-// Turn any thrown thing into a readable message
-function toErrorMessage(e: unknown) {
-  if (e instanceof Error) return e.message;
-  try {
-    return JSON.stringify(e);
-  } catch {
-    return String(e);
-  }
 }
 
 export default function HomeScreen() {
@@ -92,8 +106,20 @@ export default function HomeScreen() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const prefIdSet = useMemo(() => new Set(PREFERENCES_FILTERS.map(f => token(f.id))), []);
-  const allergenIdSet = useMemo(() => new Set(DIETARY_NEEDS_FILTERS.map(f => token(f.id))), []);
+  // IMPORTANT:
+  // Sometimes your filter ids might be "vegan" but the DB might store "Vegan" (name).
+  // To be extra safe, accept BOTH id + name as valid tokens.
+  const prefIdSet = useMemo(() => {
+    const ids = PREFERENCES_FILTERS.map(f => token(f.id));
+    const names = PREFERENCES_FILTERS.map(f => token(f.name));
+    return new Set([...ids, ...names]);
+  }, []);
+
+  const allergenIdSet = useMemo(() => {
+    const ids = DIETARY_NEEDS_FILTERS.map(f => token(f.id));
+    const names = DIETARY_NEEDS_FILTERS.map(f => token(f.name));
+    return new Set([...ids, ...names]);
+  }, []);
 
   const toggleFilter = (filterId: string) => {
     const id = token(filterId);
@@ -102,6 +128,7 @@ export default function HomeScreen() {
 
   const clearFilters = () => setSelectedFilters([]);
 
+  // Load menu (QR -> business -> items + joined allergens/preferences)
   useEffect(() => {
     let cancelled = false;
 
@@ -114,15 +141,11 @@ export default function HomeScreen() {
 
         // DEV fallback: if no QR param, just load the first business
         if (!effectiveCode) {
-          const { data: firstBusiness, error: firstBizErr } = await supabase
+          const { data: firstBusiness } = await supabase
             .from('business')
             .select('id, name, unique_identifier, qr_slug')
             .limit(1)
             .maybeSingle<Business>();
-
-          if (firstBizErr) {
-            console.log('FIRST BUSINESS LOOKUP ERROR:', firstBizErr);
-          }
 
           if (firstBusiness) {
             effectiveCode =
@@ -144,23 +167,21 @@ export default function HomeScreen() {
         // Business lookup: qr_slug first, then legacy unique_identifier
         let business: Business | null = null;
 
-        const { data: bySlug, error: bySlugErr } = await supabase
+        const { data: bySlug } = await supabase
           .from('business')
           .select('id, name, unique_identifier, qr_slug')
           .eq('qr_slug', effectiveCode)
           .maybeSingle<Business>();
 
-        if (bySlugErr) console.log('BUSINESS LOOKUP (slug) ERROR:', bySlugErr);
         business = bySlug ?? null;
 
         if (!business) {
-          const { data: byUnique, error: byUniqueErr } = await supabase
+          const { data: byUnique } = await supabase
             .from('business')
             .select('id, name, unique_identifier, qr_slug')
             .eq('unique_identifier', effectiveCode)
             .maybeSingle<Business>();
 
-          if (byUniqueErr) console.log('BUSINESS LOOKUP (unique_identifier) ERROR:', byUniqueErr);
           business = byUnique ?? null;
         }
 
@@ -175,11 +196,9 @@ export default function HomeScreen() {
 
         if (!cancelled) setBusinessName(business.name);
 
-        // Fetch joined allergens + preferences via join tables
         const { data: rawItems, error: menuErr } = await supabase
           .from('menu_item')
-          .select(
-            `
+          .select(`
             id,
             name,
             category,
@@ -189,15 +208,12 @@ export default function HomeScreen() {
             menu_item_preferences (
               preferences ( id, name )
             )
-          `
-          )
+          `)
           .eq('business_id', business.id)
           .order('category', { ascending: true })
           .order('name', { ascending: true });
 
         if (menuErr) {
-          console.log('MENU QUERY ERROR (full):', menuErr);
-
           const msg =
             menuErr.message +
             (menuErr.details ? ` | details: ${menuErr.details}` : '') +
@@ -211,14 +227,15 @@ export default function HomeScreen() {
         }
 
         const flattened = ((rawItems as RawMenuItem[]) ?? []).map(flattenItem);
+
+        // Quick sanity check in console: you should see preferences filled for items that have them
+        console.log('First item (flattened):', flattened[0]);
+
         if (!cancelled) setItems(flattened);
       } catch (e) {
-        // THIS is what your screenshot is currently showing.
-        // So make it display the actual error.
-        console.log('LOAD MENU THREW:', e);
-
+        console.warn('Load menu error:', e);
         if (!cancelled) {
-          setError(`Failed to load menu: ${toErrorMessage(e)}`);
+          setError('Failed to load menu. Please try again later.');
           setItems([]);
         }
       } finally {
@@ -250,12 +267,16 @@ export default function HomeScreen() {
     const selectedAvoidAllergens = selectedFilters.filter(id => allergenIdSet.has(id));
 
     return searchFilteredItems.filter(item => {
+      // Allergens to avoid: exclude if any match
       for (const a of selectedAvoidAllergens) {
         if (item.allergens.includes(a)) return false;
       }
+
+      // Preferences: require ALL selected preferences to be present
       for (const p of selectedPrefs) {
         if (!item.preferences.includes(p)) return false;
       }
+
       return true;
     });
   }, [searchFilteredItems, selectedFilters, prefIdSet, allergenIdSet]);
@@ -294,10 +315,6 @@ export default function HomeScreen() {
 
   // Empty menu state (after load)
   if (items.length === 0) {
-    const emptyMessage = error
-      ? "We couldn't load this menu right now. Please try again."
-      : "This restaurant hasn't added any menu items yet. Please check back later.";
-
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -334,7 +351,9 @@ export default function HomeScreen() {
 
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeTitle}>{businessName || 'Restaurant'}</Text>
-              <Text style={styles.welcomeText}>{emptyMessage}</Text>
+              <Text style={styles.welcomeText}>
+                {error ? "We couldn't load this menu right now. Please try again." : "This restaurant hasn't added any menu items yet. Please check back later."}
+              </Text>
             </View>
 
             <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
@@ -368,6 +387,7 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Image
               source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
@@ -376,6 +396,7 @@ export default function HomeScreen() {
             />
           </View>
 
+          {/* Inline error banner */}
           {error ? (
             <View style={styles.inlineError}>
               <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
@@ -383,6 +404,7 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
+          {/* Welcome Section */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
             <Text style={styles.welcomeText}>
@@ -390,6 +412,7 @@ export default function HomeScreen() {
             </Text>
           </View>
 
+          {/* Search Bar */}
           <View style={styles.searchContainer}>
             <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
             <TextInput
@@ -407,12 +430,14 @@ export default function HomeScreen() {
             )}
           </View>
 
+          {/* Clear filters */}
           {selectedFilters.length > 0 ? (
             <Pressable onPress={clearFilters} style={{ alignSelf: 'flex-end', marginBottom: 10 }}>
               <Text style={{ color: colors.primary, fontWeight: '800' }}>Clear filters</Text>
             </Pressable>
           ) : null}
 
+          {/* Preferences */}
           <View style={styles.preferencesCard}>
             <Text style={[styles.preferencesHeading, styles.preferencesHeadingInner]}>Preferences</Text>
             <Text style={[styles.preferencesSubtitle, styles.preferencesSubtitleInner]}>
@@ -449,6 +474,7 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
 
+          {/* Dietary Needs */}
           <View style={styles.dietaryContainer}>
             <Text style={[styles.preferencesHeading, styles.headingAligned]}>Dietary Needs</Text>
             <Text style={[styles.preferencesSubtitleSmall, styles.subHeadingAligned]}>
@@ -477,6 +503,7 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
 
+          {/* Menu Items */}
           <View style={styles.menuSection}>
             <Text style={styles.sectionTitle}>{searchQuery ? 'Search Results' : 'Menu'}</Text>
 
@@ -489,7 +516,7 @@ export default function HomeScreen() {
             ) : (
               <FlatList
                 data={filteredItems}
-                keyExtractor={item => String(item.id)}
+                keyExtractor={(item) => String(item.id)}
                 scrollEnabled={false}
                 renderItem={({ item }) => (
                   <View style={styles.menuCard}>
@@ -503,9 +530,10 @@ export default function HomeScreen() {
                         )}
                       </View>
 
+                      {/* Allergen chips (tappable to toggle avoid filters) */}
                       {item.allergens.length > 0 ? (
                         <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
-                          {item.allergens.map(a => {
+                          {item.allergens.map((a) => {
                             const id = token(a);
                             const active = selectedFilters.includes(id);
                             return (
@@ -529,6 +557,11 @@ export default function HomeScreen() {
                           })}
                         </View>
                       ) : null}
+
+                      {/* (Optional) If you want to visibly confirm preferences are loading, uncomment: */}
+                      {/* <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                        Prefs: {item.preferences.join(', ') || 'none'}
+                      </Text> */}
                     </View>
                   </View>
                 )}
@@ -536,6 +569,7 @@ export default function HomeScreen() {
             )}
           </View>
 
+          {/* Terms */}
           <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
             <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
             <Text style={styles.termsButtonText}>Terms & Conditions</Text>
@@ -631,7 +665,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent,
   },
-  // IMPORTANT: flex: 1 stops long errors being clipped on one line
   inlineErrorText: { color: colors.text, fontSize: 13, fontWeight: '600', flex: 1 },
 
   preferencesCard: {
@@ -691,4 +724,3 @@ const styles = StyleSheet.create({
   },
   termsButtonText: { fontSize: 16, fontWeight: '800', color: colors.primary, flex: 1 },
 });
-

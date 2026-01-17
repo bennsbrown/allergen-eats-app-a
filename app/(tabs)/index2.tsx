@@ -1,20 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Platform,
+  ScrollView,
   Pressable,
   StyleSheet,
-  Text,
-  TextInput,
   View,
+  Text,
+  Platform,
+  Image,
+  TextInput,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
+import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/app/integrations/supabase/client';
-import { DIETARY_NEEDS_FILTERS, PREFERENCES_FILTERS } from '@/types/allergen';
 
 interface Business {
   id: number;
@@ -23,127 +24,122 @@ interface Business {
   qr_slug?: string | null;
 }
 
-/**
- * Supabase returns nested relation objects for join tables.
- * We flatten them into simple arrays for easy filtering & display.
- */
+// Raw shape returned by Supabase (with join tables)
 type RawMenuItem = {
   id: number;
   name: string;
   category?: string | null;
 
-  menu_item_allergens?: Array<{
-    allergens?: {
-      id: number;
-      name: string;
-    } | null;
-  }> | null;
+  // Supabase sometimes returns these as array, null, or even an object depending on relationships / joins
+  menu_item_allergens?:
+    | Array<{ allergens?: { id: number; name: string } | null }>
+    | { allergens?: { id: number; name: string } | null }
+    | null;
 
-  menu_item_preferences?: Array<{
-    preferences?: {
-      id: number;
-      name: string;
-    } | null;
-  }> | null;
+  menu_item_preferences?:
+    | Array<{ preferences?: { id: number; name: string } | null }>
+    | { preferences?: { id: number; name: string } | null }
+    | null;
+
+  // Optional fallback if you ever store preferences directly as text/array later
+  preferences?: string[] | string | null;
+  allergens?: string[] | string | null;
 };
 
+// Flattened shape used by UI + filters
 type MenuItem = {
   id: number;
   name: string;
   category?: string | null;
-  allergens: string[]; // lowercased names
-  preferences: string[]; // lowercased names
+  allergens: string[];
+  preferences: string[];
 };
 
-function toToken(s: unknown): string {
-  return String(s ?? '')
-    .toLowerCase()
-    .trim();
-}
+const token = (v: unknown) => String(v ?? '').toLowerCase().trim();
+const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
 
-function uniqueTokens(arr: string[]): string[] {
-  return Array.from(new Set(arr.filter(Boolean)));
-}
+// Turn null / object / array into a safe array
+const asArray = <T,>(v: T | T[] | null | undefined): T[] => {
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+};
 
-function flattenMenuItem(raw: RawMenuItem): MenuItem {
-  const allergens =
-    raw.menu_item_allergens?.map(x => toToken(x?.allergens?.name)) ?? [];
-  const preferences =
-    raw.menu_item_preferences?.map(x => toToken(x?.preferences?.name)) ?? [];
+function flattenItem(raw: RawMenuItem): MenuItem {
+  // Joined allergens (safe)
+  const allergenJoin = asArray(raw.menu_item_allergens);
+  const allergensFromJoin = allergenJoin
+    .map(x => token((x as any)?.allergens?.name))
+    .filter(Boolean);
+
+  // Joined preferences (safe)
+  const prefJoin = asArray(raw.menu_item_preferences);
+  const prefsFromJoin = prefJoin
+    .map(x => token((x as any)?.preferences?.name))
+    .filter(Boolean);
+
+  // Optional fallbacks if you ever store plain preferences/allergens on the row
+  const prefsFallback = asArray(raw.preferences as any)
+    .flatMap(x => token(x).split(','))
+    .filter(Boolean);
+
+  const allergensFallback = asArray(raw.allergens as any)
+    .flatMap(x => token(x).split(','))
+    .filter(Boolean);
 
   return {
     id: raw.id,
     name: raw.name,
     category: raw.category ?? null,
-    allergens: uniqueTokens(allergens),
-    preferences: uniqueTokens(preferences),
+    allergens: uniq([...allergensFromJoin, ...allergensFallback]),
+    preferences: uniq([...prefsFromJoin, ...prefsFallback]),
   };
 }
 
-export default function IndexScreen() {
+export default function HomeScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
 
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [loading, setLoading] = useState(true);
-  const [businessName, setBusinessName] = useState<string>('Allergen Menu');
+  const [businessName, setBusinessName] = useState<string | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-
-  // Build sets so we can tell which selected filters are "preferences" vs "allergens to avoid"
-  const preferenceFilterIdSet = useMemo(
-    () => new Set(PREFERENCES_FILTERS.map(f => toToken(f.id))),
-    []
-  );
-  const dietaryFilterIdSet = useMemo(
-    () => new Set(DIETARY_NEEDS_FILTERS.map(f => toToken(f.id))),
-    []
-  );
-
-  // Optional: help map filter IDs to display names (if needed later)
-  const preferenceNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const f of PREFERENCES_FILTERS) m.set(toToken(f.id), f.name);
-    return m;
-  }, []);
-  const dietaryNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const f of DIETARY_NEEDS_FILTERS) m.set(toToken(f.id), f.name);
-    return m;
+  // IMPORTANT:
+  // Sometimes your filter ids might be "vegan" but the DB might store "Vegan" (name).
+  // To be extra safe, accept BOTH id + name as valid tokens.
+  const prefIdSet = useMemo(() => {
+    const ids = PREFERENCES_FILTERS.map(f => token(f.id));
+    const names = PREFERENCES_FILTERS.map(f => token(f.name));
+    return new Set([...ids, ...names]);
   }, []);
 
-  const toggleFilter = (id: string) => {
-    const token = toToken(id);
-    setSelectedFilters(prev =>
-      prev.includes(token) ? prev.filter(x => x !== token) : [...prev, token]
-    );
+  const allergenIdSet = useMemo(() => {
+    const ids = DIETARY_NEEDS_FILTERS.map(f => token(f.id));
+    const names = DIETARY_NEEDS_FILTERS.map(f => token(f.name));
+    return new Set([...ids, ...names]);
+  }, []);
+
+  const toggleFilter = (filterId: string) => {
+    const id = token(filterId);
+    setSelectedFilters(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
   const clearFilters = () => setSelectedFilters([]);
 
-  const headerRight = () => (
-    <Pressable onPress={() => console.log('Info pressed')} style={{ padding: 6 }}>
-      <IconSymbol name="info.circle" color={colors.primary} />
-    </Pressable>
-  );
-
-  const goToTerms = () => router.push('/terms-acceptance');
-
-  // ============ LOAD DATA (QR -> business -> menu) ============
+  // Load menu (QR -> business -> items + joined allergens/preferences)
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
+    const loadMenu = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // 1) Determine effective code
         let effectiveCode = code;
 
-        // DEV fallback: if no code, show first business.
-        // (You may remove this in production so invalid links don't show random menus.)
+        // DEV fallback: if no QR param, just load the first business
         if (!effectiveCode) {
           const { data: firstBusiness } = await supabase
             .from('business')
@@ -163,11 +159,12 @@ export default function IndexScreen() {
           if (!cancelled) {
             setError('No menu code provided.');
             setItems([]);
+            setBusinessName(null);
           }
           return;
         }
 
-        // 2) Fetch business by qr_slug, then by unique_identifier (legacy)
+        // Business lookup: qr_slug first, then legacy unique_identifier
         let business: Business | null = null;
 
         const { data: bySlug } = await supabase
@@ -176,7 +173,7 @@ export default function IndexScreen() {
           .eq('qr_slug', effectiveCode)
           .maybeSingle<Business>();
 
-        if (bySlug) business = bySlug;
+        business = bySlug ?? null;
 
         if (!business) {
           const { data: byUnique } = await supabase
@@ -185,25 +182,23 @@ export default function IndexScreen() {
             .eq('unique_identifier', effectiveCode)
             .maybeSingle<Business>();
 
-          if (byUnique) business = byUnique;
+          business = byUnique ?? null;
         }
 
         if (!business) {
           if (!cancelled) {
             setError('Menu link is invalid. Please check the QR code and try again.');
             setItems([]);
+            setBusinessName(null);
           }
           return;
         }
 
         if (!cancelled) setBusinessName(business.name);
 
-        // 3) Fetch menu items WITH allergens & preferences via join tables
-        // This is the key fix based on your schema.
         const { data: rawItems, error: menuErr } = await supabase
           .from('menu_item')
-          .select(
-            `
+          .select(`
             id,
             name,
             category,
@@ -213,27 +208,32 @@ export default function IndexScreen() {
             menu_item_preferences (
               preferences ( id, name )
             )
-          `
-          )
+          `)
           .eq('business_id', business.id)
           .order('category', { ascending: true })
           .order('name', { ascending: true });
 
         if (menuErr) {
+          const msg =
+            menuErr.message +
+            (menuErr.details ? ` | details: ${menuErr.details}` : '') +
+            (menuErr.hint ? ` | hint: ${menuErr.hint}` : '');
+
           if (!cancelled) {
-            setError('Failed to load menu items.');
+            setError(`Failed to load menu items: ${msg}`);
             setItems([]);
           }
           return;
         }
 
-        const flattened = (rawItems as RawMenuItem[] | null)?.map(flattenMenuItem) ?? [];
+        const flattened = ((rawItems as RawMenuItem[]) ?? []).map(flattenItem);
 
-        if (!cancelled) {
-          setItems(flattened);
-        }
+        // Quick sanity check in console: you should see preferences filled for items that have them
+        console.log('First item (flattened):', flattened[0]);
+
+        if (!cancelled) setItems(flattened);
       } catch (e) {
-        console.warn('Load error:', e);
+        console.warn('Load menu error:', e);
         if (!cancelled) {
           setError('Failed to load menu. Please try again later.');
           setItems([]);
@@ -243,325 +243,361 @@ export default function IndexScreen() {
       }
     };
 
-    load();
+    loadMenu();
     return () => {
       cancelled = true;
     };
   }, [code]);
 
-  // ============ FILTERING ============
+  // Search first
+  const searchFilteredItems = useMemo(() => {
+    const q = token(searchQuery);
+    if (!q) return items;
+
+    return items.filter(it => {
+      const name = token(it.name);
+      const cat = token(it.category);
+      return name.includes(q) || cat.includes(q);
+    });
+  }, [items, searchQuery]);
+
+  // Then apply filters (multiple allowed)
   const filteredItems = useMemo(() => {
-    const q = toToken(searchQuery);
+    const selectedPrefs = selectedFilters.filter(id => prefIdSet.has(id));
+    const selectedAvoidAllergens = selectedFilters.filter(id => allergenIdSet.has(id));
 
-    // Split selected filters into preference filters vs allergen-avoid filters
-    const selectedPreferences = selectedFilters.filter(id => preferenceFilterIdSet.has(id));
-    const selectedAvoidAllergens = selectedFilters.filter(id => dietaryFilterIdSet.has(id));
-
-    return items.filter(item => {
-      // Search
-      if (q) {
-        const nameMatch = toToken(item.name).includes(q);
-        const catMatch = toToken(item.category).includes(q);
-        if (!nameMatch && !catMatch) return false;
-      }
-
-      // Allergens to avoid = EXCLUDE if item contains any selected allergen
-      // (If user selects "milk", hide items containing milk)
+    return searchFilteredItems.filter(item => {
+      // Allergens to avoid: exclude if any match
       for (const a of selectedAvoidAllergens) {
         if (item.allergens.includes(a)) return false;
       }
 
-      // Preferences = INCLUDE only if item matches ALL selected preferences
-      // (If user selects Vegan + Halal, require both tags on the item)
-      for (const p of selectedPreferences) {
+      // Preferences: require ALL selected preferences to be present
+      for (const p of selectedPrefs) {
         if (!item.preferences.includes(p)) return false;
       }
 
       return true;
     });
-  }, [items, searchQuery, selectedFilters, preferenceFilterIdSet, dietaryFilterIdSet]);
+  }, [searchFilteredItems, selectedFilters, prefIdSet, allergenIdSet]);
 
-  // ============ UI ============
+  const renderHeaderRight = () => (
+    <Pressable onPress={() => console.log('Info button pressed')} style={styles.headerButtonContainer}>
+      <IconSymbol name="info.circle" color={colors.primary} />
+    </Pressable>
+  );
+
+  const handleNavigateToTerms = () => {
+    router.push('/terms-acceptance');
+  };
+
+  // Loading state
   if (loading) {
     return (
       <>
         {Platform.OS === 'ios' && (
-          <Stack.Screen options={{ title: 'Allergen Menu', headerRight }} />
+          <Stack.Screen
+            options={{
+              title: 'Allergen Menu',
+              headerRight: renderHeaderRight,
+            }}
+          />
         )}
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading menu...</Text>
+        <View style={styles.container}>
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading menu...</Text>
+          </View>
         </View>
       </>
     );
   }
 
-  const ListHeader = (
-    <>
-      {Platform.OS === 'ios' && (
-        <Stack.Screen options={{ title: businessName, headerRight }} />
-      )}
-
-      <View style={styles.logoContainer}>
-        <Image
-          source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-      </View>
-
-      {error ? (
-        <View style={styles.inlineError}>
-          <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
-          <Text style={styles.inlineErrorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
-        <Text style={styles.welcomeText}>
-          Browse the menu. Use search and filters to find what suits you.
-        </Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search dishes..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')}>
-            <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Preferences filters */}
-      <View style={styles.filtersCard}>
-        <View style={styles.filtersTopRow}>
-          <Text style={styles.filtersTitle}>Preferences</Text>
-          {selectedFilters.length > 0 ? (
-            <Pressable onPress={clearFilters} hitSlop={10}>
-              <Text style={styles.clearText}>Clear</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        <Text style={styles.filtersSubtitle}>Select dietary preferences</Text>
-
-        <View style={styles.horizontalRow}>
-          {PREFERENCES_FILTERS.map(f => {
-            const id = toToken(f.id);
-            const active = selectedFilters.includes(id);
-
-            return (
-              <Pressable
-                key={f.id}
-                onPress={() => toggleFilter(id)}
-                style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive]}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                {({ pressed }) => (
-                  <>
-                    <IconSymbol
-                      name={f.icon as any}
-                      color={active || pressed ? colors.card : colors.primary}
-                      size={14}
-                      style={{ marginRight: 8 }}
-                    />
-                    <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                      {f.name}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Dietary needs (allergens to avoid) */}
-      <View style={{ marginBottom: 10 }}>
-        <Text style={styles.sectionTitle}>Dietary Needs</Text>
-        <Text style={styles.sectionSubtitle}>Select allergens to avoid</Text>
-
-        <View style={[styles.horizontalRow, { paddingLeft: 16 }]}>
-          {DIETARY_NEEDS_FILTERS.map(f => {
-            const id = toToken(f.id);
-            const active = selectedFilters.includes(id);
-
-            return (
-              <Pressable
-                key={f.id}
-                onPress={() => toggleFilter(id)}
-                style={({ pressed }) => [
-                  styles.chip,
-                  (active || pressed) && styles.chipActive,
-                  { paddingHorizontal: 16 },
-                ]}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                {({ pressed }) => (
-                  <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                    {f.name}
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <Text style={styles.menuHeading}>{searchQuery ? 'Search Results' : 'Menu'}</Text>
-    </>
-  );
-
-  const ListFooter = (
-    <>
-      <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>About This Menu</Text>
-        <Text style={styles.infoText}>• Use search to quickly find dishes</Text>
-        <Text style={styles.infoText}>• Menu items are provided by {businessName}</Text>
-        <Text style={styles.infoText}>• For allergen advice, please ask your server</Text>
-      </View>
-
-      <Pressable style={styles.termsButton} onPress={goToTerms}>
-        <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
-        <Text style={styles.termsButtonText}>Terms & Conditions</Text>
-        <IconSymbol name="chevron.right" color={colors.primary} size={18} />
-      </Pressable>
-
-      <View style={{ height: 24 }} />
-    </>
-  );
-
-  // Empty menu (no items at all)
+  // Empty menu state (after load)
   if (items.length === 0) {
     return (
-      <View style={styles.container}>
-        {ListHeader}
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>{businessName}</Text>
-          <Text style={styles.emptyText}>
-            This restaurant hasn’t added any menu items yet. Please check back later.
-          </Text>
+      <>
+        {Platform.OS === 'ios' && (
+          <Stack.Screen
+            options={{
+              title: businessName || 'Allergen Menu',
+              headerRight: renderHeaderRight,
+            }}
+          />
+        )}
+        <View style={styles.container}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.logoContainer}>
+              <Image
+                source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            {error ? (
+              <View style={styles.inlineError}>
+                <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
+                <Text style={styles.inlineErrorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>{businessName || 'Restaurant'}</Text>
+              <Text style={styles.welcomeText}>
+                {error ? "We couldn't load this menu right now. Please try again." : "This restaurant hasn't added any menu items yet. Please check back later."}
+              </Text>
+            </View>
+
+            <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+              <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+              <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+              <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+            </Pressable>
+          </ScrollView>
         </View>
-        {ListFooter}
-      </View>
+      </>
     );
   }
 
+  // Main menu display
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => String(item.id)}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-        contentContainerStyle={{ paddingBottom: 16 }}
-        renderItem={({ item }) => {
-          return (
-            <View style={styles.menuCard}>
-              <View style={styles.menuItemHeader}>
-                <Text style={styles.menuItemName}>{item.name}</Text>
-                {item.category ? (
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.menuItemCategory}>{toToken(item.category).toUpperCase()}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Preferences tags (optional to display) */}
-              {item.preferences.length > 0 ? (
-                <View style={styles.tagWrap}>
-                  {item.preferences.map(p => (
-                    <View key={`${item.id}-pref-${p}`} style={styles.tagPill}>
-                      <Text style={styles.tagText}>
-                        {preferenceNameById.get(p) ?? p.charAt(0).toUpperCase() + p.slice(1)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {/* Allergen chips (tappable: they toggle allergen filters) */}
-              {item.allergens.length > 0 ? (
-                <View style={styles.allergenWrap}>
-                  {item.allergens.map(a => {
-                    const active = selectedFilters.includes(a);
-
-                    // If your allergen names don’t match DIETARY_NEEDS_FILTERS ids exactly,
-                    // you’ll want to map them. For now this assumes they match (e.g. "milk", "gluten").
-                    const label = dietaryNameById.get(a) ?? a.charAt(0).toUpperCase() + a.slice(1);
-
-                    return (
-                      <Pressable
-                        key={`${item.id}-alg-${a}`}
-                        onPress={() => toggleFilter(a)}
-                        style={({ pressed }) => [
-                          styles.chip,
-                          (active || pressed) && styles.chipActive,
-                          { paddingHorizontal: 16 },
-                        ]}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        {({ pressed }) => (
-                          <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                            {label}
-                          </Text>
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>No matches</Text>
-            <Text style={styles.emptyText}>Try removing a filter or changing your search.</Text>
+    <>
+      {Platform.OS === 'ios' && (
+        <Stack.Screen
+          options={{
+            title: businessName || 'Allergen Menu',
+            headerRight: renderHeaderRight,
+          }}
+        />
+      )}
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo Section */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
-        }
-      />
-    </View>
+
+          {/* Inline error banner */}
+          {error ? (
+            <View style={styles.inlineError}>
+              <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
+              <Text style={styles.inlineErrorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Welcome Section */}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
+            <Text style={styles.welcomeText}>
+              Browse our menu below. Use the search bar to find specific dishes.
+            </Text>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search dishes..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Clear filters */}
+          {selectedFilters.length > 0 ? (
+            <Pressable onPress={clearFilters} style={{ alignSelf: 'flex-end', marginBottom: 10 }}>
+              <Text style={{ color: colors.primary, fontWeight: '800' }}>Clear filters</Text>
+            </Pressable>
+          ) : null}
+
+          {/* Preferences */}
+          <View style={styles.preferencesCard}>
+            <Text style={[styles.preferencesHeading, styles.preferencesHeadingInner]}>Preferences</Text>
+            <Text style={[styles.preferencesSubtitle, styles.preferencesSubtitleInner]}>
+              Select dietary preferences
+            </Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.preferencesRow}>
+              {PREFERENCES_FILTERS.map(f => {
+                const id = token(f.id);
+                const active = selectedFilters.includes(id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive]}
+                    onPress={() => toggleFilter(id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {({ pressed }) => (
+                      <>
+                        <IconSymbol
+                          name={f.icon as any}
+                          color={active || pressed ? colors.card : colors.primary}
+                          size={14}
+                          style={styles.chipIconInline}
+                        />
+                        <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
+                          {f.name}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Dietary Needs */}
+          <View style={styles.dietaryContainer}>
+            <Text style={[styles.preferencesHeading, styles.headingAligned]}>Dietary Needs</Text>
+            <Text style={[styles.preferencesSubtitleSmall, styles.subHeadingAligned]}>
+              Select allergens to avoid
+            </Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dietaryRow}>
+              {DIETARY_NEEDS_FILTERS.map(f => {
+                const id = token(f.id);
+                const active = selectedFilters.includes(id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive, styles.chipNoIcon]}
+                    onPress={() => toggleFilter(id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {({ pressed }) => (
+                      <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
+                        {f.name}
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Menu Items */}
+          <View style={styles.menuSection}>
+            <Text style={styles.sectionTitle}>{searchQuery ? 'Search Results' : 'Menu'}</Text>
+
+            {filteredItems.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
+                <Text style={styles.emptyText}>No dishes match your search or selected filters</Text>
+                <Text style={styles.emptySubtext}>Try a different search term or unselect a filter</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredItems}
+                keyExtractor={(item) => String(item.id)}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <View style={styles.menuCard}>
+                    <View style={styles.menuCardContent}>
+                      <View style={styles.menuItemHeader}>
+                        <Text style={styles.menuItemName}>{item.name}</Text>
+                        {item.category && (
+                          <View style={styles.categoryBadge}>
+                            <Text style={styles.menuItemCategory}>{item.category}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Allergen chips (tappable to toggle avoid filters) */}
+                      {item.allergens.length > 0 ? (
+                        <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+                          {item.allergens.map((a) => {
+                            const id = token(a);
+                            const active = selectedFilters.includes(id);
+                            return (
+                              <Pressable
+                                key={`${item.id}-${id}`}
+                                onPress={() => toggleFilter(id)}
+                                style={({ pressed }) => [
+                                  styles.chip,
+                                  (active || pressed) && styles.chipActive,
+                                  styles.chipNoIcon,
+                                ]}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                {({ pressed }) => (
+                                  <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
+                                    {id.charAt(0).toUpperCase() + id.slice(1)}
+                                  </Text>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ) : null}
+
+                      {/* (Optional) If you want to visibly confirm preferences are loading, uncomment: */}
+                      {/* <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                        Prefs: {item.preferences.join(', ') || 'none'}
+                      </Text> */}
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+
+          {/* Terms */}
+          <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+            <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+            <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+            <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+          </Pressable>
+        </ScrollView>
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  scrollContentWithTabBar: { paddingBottom: 100 },
 
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  loadingText: { marginTop: 16, fontSize: 16, fontWeight: '600', color: colors.text },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+  loadingText: { fontSize: 16, color: colors.text, marginTop: 16, fontWeight: '600' },
 
-  logoContainer: { alignItems: 'center', paddingVertical: 12, marginBottom: 6 },
+  logoContainer: { alignItems: 'center', marginBottom: 20, paddingVertical: 12 },
   logoImage: { width: 240, height: 100 },
-
-  inlineError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.highlight,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  inlineErrorText: { color: colors.text, fontSize: 13, fontWeight: '600', flex: 1 },
 
   welcomeSection: {
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.accent,
     ...Platform.select({
@@ -569,8 +605,8 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
-  welcomeTitle: { fontSize: 26, fontWeight: '800', color: colors.text, marginBottom: 6 },
-  welcomeText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary, lineHeight: 22 },
+  welcomeTitle: { fontSize: 28, fontWeight: '800', color: colors.text, marginBottom: 6 },
+  welcomeText: { fontSize: 15, color: colors.textSecondary, lineHeight: 22, fontWeight: '500' },
 
   searchContainer: {
     flexDirection: 'row',
@@ -579,8 +615,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     gap: 10,
     borderWidth: 1.5,
     borderColor: colors.accent,
@@ -589,34 +624,15 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
-  searchInput: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+  searchInput: { flex: 1, fontSize: 16, color: colors.text, fontWeight: '600' },
 
-  filtersCard: {
-    backgroundColor: colors.highlight,
-    borderRadius: 16,
-    padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  filtersTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  filtersTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
-  clearText: { fontSize: 13, fontWeight: '800', color: colors.primary },
-  filtersSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 6, marginBottom: 10, fontWeight: '600' },
-
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginLeft: 16, marginBottom: 6 },
-  sectionSubtitle: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginLeft: 16, marginBottom: 10 },
-
-  horizontalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
-
-  menuHeading: { fontSize: 20, fontWeight: '800', color: colors.text, marginLeft: 16, marginBottom: 10, marginTop: 6 },
+  menuSection: { marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 12, marginLeft: 20 },
 
   menuCard: {
     backgroundColor: colors.card,
     borderRadius: 14,
     padding: 16,
-    marginHorizontal: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.accent,
@@ -625,29 +641,57 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
-  menuItemHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  menuCardContent: { gap: 10 },
+  menuItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   menuItemName: { fontSize: 18, fontWeight: '800', color: colors.text, flex: 1 },
-  categoryBadge: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
-  menuItemCategory: { fontSize: 10, color: colors.card, fontWeight: '800', letterSpacing: 0.5 },
 
-  tagWrap: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap' },
-  tagPill: {
+  categoryBadge: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  menuItemCategory: { fontSize: 10, color: colors.card, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  emptyContainer: { padding: 32, alignItems: 'center' },
+  emptyText: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 12, textAlign: 'center' },
+  emptySubtext: { fontSize: 13, color: colors.textSecondary, marginTop: 6, textAlign: 'center', fontWeight: '500' },
+
+  headerButtonContainer: { padding: 6 },
+
+  inlineError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: colors.highlight,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.accent,
   },
-  tagText: { fontSize: 12, fontWeight: '700', color: colors.text },
+  inlineErrorText: { color: colors.text, fontSize: 13, fontWeight: '600', flex: 1 },
 
-  allergenWrap: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap' },
+  preferencesCard: {
+    backgroundColor: colors.highlight,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  preferencesHeading: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 6 },
+  preferencesSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
+  preferencesSubtitleSmall: { fontSize: 12, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
+
+  preferencesRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 8, paddingLeft: 6, marginBottom: 8 },
+  dietaryContainer: { marginBottom: 16 },
+  dietaryRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 8, paddingLeft: 20 },
+
+  headingAligned: { marginLeft: 20 },
+  subHeadingAligned: { marginLeft: 20 },
+  preferencesHeadingInner: { marginLeft: 6 },
+  preferencesSubtitleInner: { marginLeft: 6 },
 
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -655,26 +699,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: '#FFFFFF',
     marginRight: 8,
-    marginBottom: 8,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 13, fontWeight: '700', color: colors.text },
   chipTextActive: { color: colors.card },
-
-  infoSection: {
-    backgroundColor: colors.secondary,
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 6,
-    marginBottom: 12,
-    ...Platform.select({
-      ios: { shadowColor: colors.secondary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 },
-      android: { elevation: 4 },
-    }),
-  },
-  infoTitle: { fontSize: 18, fontWeight: '800', color: colors.card, marginBottom: 14 },
-  infoText: { fontSize: 14, fontWeight: '500', color: colors.card, lineHeight: 20 },
+  chipNoIcon: { paddingHorizontal: 16 },
+  chipIconInline: { marginRight: 8 },
 
   termsButton: {
     flexDirection: 'row',
@@ -683,7 +713,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 14,
     padding: 16,
-    marginHorizontal: 16,
     marginBottom: 16,
     gap: 10,
     borderWidth: 2,
@@ -694,8 +723,4 @@ const styles = StyleSheet.create({
     }),
   },
   termsButtonText: { fontSize: 16, fontWeight: '800', color: colors.primary, flex: 1 },
-
-  emptyWrap: { padding: 24, alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 6 },
-  emptyText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 });
