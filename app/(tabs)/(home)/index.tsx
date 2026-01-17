@@ -30,7 +30,6 @@ type RawMenuItem = {
   name: string;
   category?: string | null;
 
-  // Supabase sometimes returns these as array, null, or even an object depending on relationships / joins
   menu_item_allergens?:
     | Array<{ allergens?: { id: number; name: string } | null }>
     | { allergens?: { id: number; name: string } | null }
@@ -41,7 +40,6 @@ type RawMenuItem = {
     | { preferences?: { id: number; name: string } | null }
     | null;
 
-  // Optional fallback if you ever store preferences directly as text/array later
   preferences?: string[] | string | null;
   allergens?: string[] | string | null;
 };
@@ -58,32 +56,28 @@ type MenuItem = {
 const token = (v: unknown) => String(v ?? '').toLowerCase().trim();
 const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
 
-// Turn null / object / array into a safe array
 const asArray = <T,>(v: T | T[] | null | undefined): T[] => {
   if (!v) return [];
   return Array.isArray(v) ? v : [v];
 };
 
 function flattenItem(raw: RawMenuItem): MenuItem {
-  // Joined allergens (safe)
   const allergenJoin = asArray(raw.menu_item_allergens);
   const allergensFromJoin = allergenJoin
-    .map(x => token((x as any)?.allergens?.name))
+    .map((x) => token((x as any)?.allergens?.name))
     .filter(Boolean);
 
-  // Joined preferences (safe)
   const prefJoin = asArray(raw.menu_item_preferences);
   const prefsFromJoin = prefJoin
-    .map(x => token((x as any)?.preferences?.name))
+    .map((x) => token((x as any)?.preferences?.name))
     .filter(Boolean);
 
-  // Optional fallbacks if you ever store plain preferences/allergens on the row
   const prefsFallback = asArray(raw.preferences as any)
-    .flatMap(x => token(x).split(','))
+    .flatMap((x) => token(x).split(','))
     .filter(Boolean);
 
   const allergensFallback = asArray(raw.allergens as any)
-    .flatMap(x => token(x).split(','))
+    .flatMap((x) => token(x).split(','))
     .filter(Boolean);
 
   return {
@@ -106,24 +100,22 @@ export default function HomeScreen() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // IMPORTANT:
-  // Sometimes your filter ids might be "vegan" but the DB might store "Vegan" (name).
-  // To be extra safe, accept BOTH id + name as valid tokens.
+  // Accept BOTH filter id + name (defensive against "Vegan" vs "vegan")
   const prefIdSet = useMemo(() => {
-    const ids = PREFERENCES_FILTERS.map(f => token(f.id));
-    const names = PREFERENCES_FILTERS.map(f => token(f.name));
+    const ids = PREFERENCES_FILTERS.map((f) => token(f.id));
+    const names = PREFERENCES_FILTERS.map((f) => token(f.name));
     return new Set([...ids, ...names]);
   }, []);
 
   const allergenIdSet = useMemo(() => {
-    const ids = DIETARY_NEEDS_FILTERS.map(f => token(f.id));
-    const names = DIETARY_NEEDS_FILTERS.map(f => token(f.name));
+    const ids = DIETARY_NEEDS_FILTERS.map((f) => token(f.id));
+    const names = DIETARY_NEEDS_FILTERS.map((f) => token(f.name));
     return new Set([...ids, ...names]);
   }, []);
 
   const toggleFilter = (filterId: string) => {
     const id = token(filterId);
-    setSelectedFilters(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+    setSelectedFilters((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const clearFilters = () => setSelectedFilters([]);
@@ -139,22 +131,6 @@ export default function HomeScreen() {
       try {
         let effectiveCode = code;
 
-        // DEV fallback: if no QR param, just load the first business
-        if (!effectiveCode) {
-          const { data: firstBusiness } = await supabase
-            .from('business')
-            .select('id, name, unique_identifier, qr_slug')
-            .limit(1)
-            .maybeSingle<Business>();
-
-          if (firstBusiness) {
-            effectiveCode =
-              firstBusiness.qr_slug ??
-              firstBusiness.unique_identifier ??
-              String(firstBusiness.id);
-          }
-        }
-
         if (!effectiveCode) {
           if (!cancelled) {
             setError('No menu code provided.');
@@ -164,7 +140,7 @@ export default function HomeScreen() {
           return;
         }
 
-        // Business lookup: qr_slug first, then legacy unique_identifier
+        // Business lookup
         let business: Business | null = null;
 
         const { data: bySlug } = await supabase
@@ -198,7 +174,8 @@ export default function HomeScreen() {
 
         const { data: rawItems, error: menuErr } = await supabase
           .from('menu_item')
-          .select(`
+          .select(
+            `
             id,
             name,
             category,
@@ -208,7 +185,8 @@ export default function HomeScreen() {
             menu_item_preferences (
               preferences ( id, name )
             )
-          `)
+          `
+          )
           .eq('business_id', business.id)
           .order('category', { ascending: true })
           .order('name', { ascending: true });
@@ -227,10 +205,6 @@ export default function HomeScreen() {
         }
 
         const flattened = ((rawItems as RawMenuItem[]) ?? []).map(flattenItem);
-
-        // Quick sanity check in console: you should see preferences filled for items that have them
-        console.log('First item (flattened):', flattened[0]);
-
         if (!cancelled) setItems(flattened);
       } catch (e) {
         console.warn('Load menu error:', e);
@@ -254,29 +228,27 @@ export default function HomeScreen() {
     const q = token(searchQuery);
     if (!q) return items;
 
-    return items.filter(it => {
+    return items.filter((it) => {
       const name = token(it.name);
       const cat = token(it.category);
       return name.includes(q) || cat.includes(q);
     });
   }, [items, searchQuery]);
 
-  // Then apply filters (multiple allowed)
+  // Then apply filters
   const filteredItems = useMemo(() => {
-    const selectedPrefs = selectedFilters.filter(id => prefIdSet.has(id));
-    const selectedAvoidAllergens = selectedFilters.filter(id => allergenIdSet.has(id));
+    const selectedPrefs = selectedFilters.filter((id) => prefIdSet.has(id));
+    const selectedAvoidAllergens = selectedFilters.filter((id) => allergenIdSet.has(id));
 
-    return searchFilteredItems.filter(item => {
-      // Allergens to avoid: exclude if any match
+    return searchFilteredItems.filter((item) => {
+      // Avoid allergens: exclude if any match
       for (const a of selectedAvoidAllergens) {
         if (item.allergens.includes(a)) return false;
       }
-
-      // Preferences: require ALL selected preferences to be present
+      // Preferences: require ALL selected prefs
       for (const p of selectedPrefs) {
         if (!item.preferences.includes(p)) return false;
       }
-
       return true;
     });
   }, [searchFilteredItems, selectedFilters, prefIdSet, allergenIdSet]);
@@ -287,22 +259,26 @@ export default function HomeScreen() {
     </Pressable>
   );
 
-  const handleNavigateToTerms = () => {
-    router.push('/terms-acceptance');
-  };
+  const handleNavigateToTerms = () => router.push('/terms-acceptance');
 
-  // Loading state
+  const header = (
+    <>
+      {Platform.OS === 'ios' && (
+        <Stack.Screen
+          options={{
+            title: businessName || 'Allergen Menu',
+            headerRight: renderHeaderRight,
+          }}
+        />
+      )}
+    </>
+  );
+
+  // Loading
   if (loading) {
     return (
       <>
-        {Platform.OS === 'ios' && (
-          <Stack.Screen
-            options={{
-              title: 'Allergen Menu',
-              headerRight: renderHeaderRight,
-            }}
-          />
-        )}
+        {header}
         <View style={styles.container}>
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -313,24 +289,18 @@ export default function HomeScreen() {
     );
   }
 
-  // Empty menu state (after load)
+  // Empty menu state
   if (items.length === 0) {
     return (
       <>
-        {Platform.OS === 'ios' && (
-          <Stack.Screen
-            options={{
-              title: businessName || 'Allergen Menu',
-              headerRight: renderHeaderRight,
-            }}
-          />
-        )}
+        {header}
         <View style={styles.container}>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollContent,
               Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+              { paddingBottom: 140 },
             ]}
             showsVerticalScrollIndicator={false}
           >
@@ -352,7 +322,9 @@ export default function HomeScreen() {
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeTitle}>{businessName || 'Restaurant'}</Text>
               <Text style={styles.welcomeText}>
-                {error ? "We couldn't load this menu right now. Please try again." : "This restaurant hasn't added any menu items yet. Please check back later."}
+                {error
+                  ? "We couldn't load this menu right now. Please try again."
+                  : "This restaurant hasn't added any menu items yet. Please check back later."}
               </Text>
             </View>
 
@@ -367,215 +339,177 @@ export default function HomeScreen() {
     );
   }
 
-  // Main menu display
+  // MAIN: one vertical scroller (FlatList)
   return (
     <>
-      {Platform.OS === 'ios' && (
-        <Stack.Screen
-          options={{
-            title: businessName || 'Allergen Menu',
-            headerRight: renderHeaderRight,
-          }}
-        />
-      )}
+      {header}
       <View style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={10}
+          windowSize={7}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.scrollContent,
             Platform.OS !== 'ios' && styles.scrollContentWithTabBar,
+            { paddingBottom: 140 },
           ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-
-          {/* Inline error banner */}
-          {error ? (
-            <View style={styles.inlineError}>
-              <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
-              <Text style={styles.inlineErrorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Welcome Section */}
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
-            <Text style={styles.welcomeText}>
-              Browse our menu below. Use the search bar to find specific dishes.
-            </Text>
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search dishes..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')}>
-                <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
-              </Pressable>
-            )}
-          </View>
-
-          {/* Clear filters */}
-          {selectedFilters.length > 0 ? (
-            <Pressable onPress={clearFilters} style={{ alignSelf: 'flex-end', marginBottom: 10 }}>
-              <Text style={{ color: colors.primary, fontWeight: '800' }}>Clear filters</Text>
-            </Pressable>
-          ) : null}
-
-          {/* Preferences */}
-          <View style={styles.preferencesCard}>
-            <Text style={[styles.preferencesHeading, styles.preferencesHeadingInner]}>Preferences</Text>
-            <Text style={[styles.preferencesSubtitle, styles.preferencesSubtitleInner]}>
-              Select dietary preferences
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.preferencesRow}>
-              {PREFERENCES_FILTERS.map(f => {
-                const id = token(f.id);
-                const active = selectedFilters.includes(id);
-                return (
-                  <Pressable
-                    key={f.id}
-                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive]}
-                    onPress={() => toggleFilter(id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    {({ pressed }) => (
-                      <>
-                        <IconSymbol
-                          name={f.icon as any}
-                          color={active || pressed ? colors.card : colors.primary}
-                          size={14}
-                          style={styles.chipIconInline}
-                        />
-                        <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                          {f.name}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Dietary Needs */}
-          <View style={styles.dietaryContainer}>
-            <Text style={[styles.preferencesHeading, styles.headingAligned]}>Dietary Needs</Text>
-            <Text style={[styles.preferencesSubtitleSmall, styles.subHeadingAligned]}>
-              Select allergens to avoid
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dietaryRow}>
-              {DIETARY_NEEDS_FILTERS.map(f => {
-                const id = token(f.id);
-                const active = selectedFilters.includes(id);
-                return (
-                  <Pressable
-                    key={f.id}
-                    style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive, styles.chipNoIcon]}
-                    onPress={() => toggleFilter(id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    {({ pressed }) => (
-                      <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                        {f.name}
-                      </Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Menu Items */}
-          <View style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{searchQuery ? 'Search Results' : 'Menu'}</Text>
-
-            {filteredItems.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
-                <Text style={styles.emptyText}>No dishes match your search or selected filters</Text>
-                <Text style={styles.emptySubtext}>Try a different search term or unselect a filter</Text>
+          ListHeaderComponent={
+            <>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </View>
-            ) : (
-              <FlatList
-                data={filteredItems}
-                keyExtractor={(item) => String(item.id)}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <View style={styles.menuCard}>
-                    <View style={styles.menuCardContent}>
-                      <View style={styles.menuItemHeader}>
-                        <Text style={styles.menuItemName}>{item.name}</Text>
-                        {item.category && (
-                          <View style={styles.categoryBadge}>
-                            <Text style={styles.menuItemCategory}>{item.category}</Text>
-                          </View>
-                        )}
-                      </View>
 
-                      {/* Allergen chips (tappable to toggle avoid filters) */}
-                      {item.allergens.length > 0 ? (
-                        <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
-                          {item.allergens.map((a) => {
-                            const id = token(a);
-                            const active = selectedFilters.includes(id);
-                            return (
-                              <Pressable
-                                key={`${item.id}-${id}`}
-                                onPress={() => toggleFilter(id)}
-                                style={({ pressed }) => [
-                                  styles.chip,
-                                  (active || pressed) && styles.chipActive,
-                                  styles.chipNoIcon,
-                                ]}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                              >
-                                {({ pressed }) => (
-                                  <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
-                                    {id.charAt(0).toUpperCase() + id.slice(1)}
-                                  </Text>
-                                )}
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      ) : null}
+              {error ? (
+                <View style={styles.inlineError}>
+                  <IconSymbol name="exclamationmark.triangle.fill" color={colors.secondary} size={16} />
+                  <Text style={styles.inlineErrorText}>{error}</Text>
+                </View>
+              ) : null}
 
-                      {/* (Optional) If you want to visibly confirm preferences are loading, uncomment: */}
-                      {/* <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                        Prefs: {item.preferences.join(', ') || 'none'}
-                      </Text> */}
-                    </View>
-                  </View>
+              <View style={styles.welcomeSection}>
+                <Text style={styles.welcomeTitle}>Welcome to {businessName}!</Text>
+                <Text style={styles.welcomeText}>
+                  Browse our menu below. Use the search bar to find specific dishes.
+                </Text>
+              </View>
+
+              <View style={styles.searchContainer}>
+                <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search dishes..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')}>
+                    <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
+                  </Pressable>
                 )}
-              />
-            )}
-          </View>
+              </View>
 
-          {/* Terms */}
-          <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
-            <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
-            <Text style={styles.termsButtonText}>Terms & Conditions</Text>
-            <IconSymbol name="chevron.right" color={colors.primary} size={18} />
-          </Pressable>
-        </ScrollView>
+              {selectedFilters.length > 0 ? (
+                <Pressable onPress={clearFilters} style={{ alignSelf: 'flex-end', marginBottom: 10 }}>
+                  <Text style={{ color: colors.primary, fontWeight: '800' }}>Clear filters</Text>
+                </Pressable>
+              ) : null}
+
+              {/* Preferences (WRAPPED, not horizontal) */}
+              <View style={styles.preferencesCard}>
+                <Text style={[styles.preferencesHeading, styles.preferencesHeadingInner]}>Preferences</Text>
+                <Text style={[styles.preferencesSubtitle, styles.preferencesSubtitleInner]}>
+                  Select dietary preferences
+                </Text>
+
+                <View style={styles.chipWrapRow}>
+                  {PREFERENCES_FILTERS.map((f) => {
+                    const id = token(f.id);
+                    const active = selectedFilters.includes(id);
+                    return (
+                      <Pressable
+                        key={f.id}
+                        style={({ pressed }) => [styles.chip, (active || pressed) && styles.chipActive]}
+                        onPress={() => toggleFilter(id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        {({ pressed }) => (
+                          <>
+                            <IconSymbol
+                              name={f.icon as any}
+                              color={active || pressed ? colors.card : colors.primary}
+                              size={14}
+                              style={styles.chipIconInline}
+                            />
+                            <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
+                              {f.name}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Dietary Needs (WRAPPED, not horizontal) */}
+              <View style={styles.dietaryContainer}>
+                <Text style={[styles.preferencesHeading, styles.headingAligned]}>Dietary Needs</Text>
+                <Text style={[styles.preferencesSubtitleSmall, styles.subHeadingAligned]}>
+                  Select allergens to avoid
+                </Text>
+
+                <View style={[styles.chipWrapRow, { paddingLeft: 20, paddingRight: 20 }]}>
+                  {DIETARY_NEEDS_FILTERS.map((f) => {
+                    const id = token(f.id);
+                    const active = selectedFilters.includes(id);
+                    return (
+                      <Pressable
+                        key={f.id}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          (active || pressed) && styles.chipActive,
+                          styles.chipNoIcon,
+                        ]}
+                        onPress={() => toggleFilter(id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        {({ pressed }) => (
+                          <Text style={[styles.chipText, (active || pressed) && styles.chipTextActive]}>
+                            {f.name}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.menuSection}>
+                <Text style={styles.sectionTitle}>{searchQuery ? 'Search Results' : 'Menu'}</Text>
+              </View>
+            </>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <IconSymbol name="exclamationmark.triangle" color={colors.textSecondary} size={48} />
+              <Text style={styles.emptyText}>No dishes match your search or selected filters</Text>
+              <Text style={styles.emptySubtext}>Try a different search term or unselect a filter</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.menuCard}>
+              <View style={styles.menuCardContent}>
+                <View style={styles.menuItemHeader}>
+                  <Text style={styles.menuItemName}>{item.name}</Text>
+                  {item.category && (
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.menuItemCategory}>{item.category}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* IMPORTANT: no per-item chips (clean UX) */}
+              </View>
+            </View>
+          )}
+          ListFooterComponent={
+            <Pressable style={styles.termsButton} onPress={handleNavigateToTerms}>
+              <IconSymbol name="doc.text.fill" color={colors.primary} size={20} />
+              <Text style={styles.termsButtonText}>Terms & Conditions</Text>
+              <IconSymbol name="chevron.right" color={colors.primary} size={18} />
+            </Pressable>
+          }
+        />
       </View>
     </>
   );
@@ -679,14 +613,22 @@ const styles = StyleSheet.create({
   preferencesSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
   preferencesSubtitleSmall: { fontSize: 12, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
 
-  preferencesRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 8, paddingLeft: 6, marginBottom: 8 },
   dietaryContainer: { marginBottom: 16 },
-  dietaryRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 8, paddingLeft: 20 },
 
   headingAligned: { marginLeft: 20 },
   subHeadingAligned: { marginLeft: 20 },
   preferencesHeadingInner: { marginLeft: 6 },
   preferencesSubtitleInner: { marginLeft: 6 },
+
+  // NEW: wrapped chips so they never overflow screen
+  chipWrapRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingLeft: 6,
+    paddingRight: 6,
+    marginBottom: 8,
+  },
 
   chip: {
     flexDirection: 'row',
@@ -698,7 +640,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
     backgroundColor: '#FFFFFF',
-    marginRight: 8,
+    marginRight: 0, // gap handles spacing now
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 13, fontWeight: '700', color: colors.text },
