@@ -238,7 +238,7 @@ export default function ProfileScreen() {
 
       // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
       const { data, error } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: business.id }
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()} //TODO FIX HERE
       });
 
       console.log('=== EDGE FUNCTION RESPONSE ===');
