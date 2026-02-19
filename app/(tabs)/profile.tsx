@@ -197,7 +197,7 @@ export default function ProfileScreen() {
     console.log('Business logout');
   };
 
-  const handleSaveAndSyncMenu = async () => {
+  const handleUpdateSheetURL = async () => {
     setSyncDebug('Sync button pressed');
 
     if (!googleSheetUrl.trim()) {
@@ -218,6 +218,94 @@ export default function ProfileScreen() {
       console.log('=== SYNC MENU START ===');
       console.log('Business ID:', business.id);
       console.log('Sheet URL:', googleSheetUrl.trim());
+      setSyncDebug('Starting sync for business ID: ' + business.id);
+
+      // 1. Save the Google Sheet URL to business.sheet_url in Supabase
+      const { error: updateError } = await (supabase as any)
+        .from('business')
+        .update({ sheet_url: googleSheetUrl.trim() })
+        .eq('id', business.id);
+
+      if (updateError) {
+        console.error('Failed to update sheet URL:', updateError);
+        setSyncDebug('Failed to save sheet URL: ' + updateError.message);
+        Alert.alert('Error', `Failed to save sheet URL: ${updateError.message}`);
+        return;
+      }
+
+      console.log('Sheet URL saved successfully, invoking sync-menu edge function...');
+      setSyncDebug('Sheet URL saved, invoking sync-menu edge function...');
+
+      // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
+      const { data, error } = await supabase.functions.invoke('sync-menu', {
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()}, //TODO FIX HERE
+      });
+
+      console.log('=== EDGE FUNCTION RESPONSE ===');
+      console.log('Response data:', JSON.stringify(data, null, 2));
+      console.log('Response error:', error);
+
+      // Handle edge function invocation errors (network, timeout, etc.)
+      if (error) {
+        console.error('Edge function invocation error:', error);
+        setSyncDebug('Edge function error: ' + error.message);
+        Alert.alert('Error', error.message || 'Failed to sync menu. Please try again.');
+        return;
+      }
+
+      // Handle errors returned in the response body
+      if (data?.error) {
+        console.error('Edge function returned error:', data.error);
+        setSyncDebug('Edge function returned error: ' + data.error);
+
+        // Check for specific error messages
+        const errorMessage = data.error.toLowerCase();
+
+        if (errorMessage.includes('no menu') || errorMessage.includes('menu not found')) {
+          Alert.alert('Error', 'No menu found. Please check your Google Sheet and try again.');
+        } else if (errorMessage.includes('no sheet') || errorMessage.includes('sheet_url') || errorMessage.includes('sheet url')) {
+          Alert.alert('Error', 'No sheet URL found. Please enter a valid Google Sheet URL and try again.');
+        } else {
+          Alert.alert('Error', data.error);
+        }
+        return;
+      }
+
+      // 3. Show success message with items created count
+      const itemsCreated = data?.items_created ?? 0;
+
+      console.log('=== SYNC SUCCESS ===');
+      console.log('Items created:', itemsCreated);
+      setSyncDebug('Success! Menu synced. ' + itemsCreated + ' items created.');
+
+      // Display success alert with exact format requested
+      Alert.alert('Success', 'Menu synced! ' + itemsCreated + ' items created.');
+
+      console.log(`Menu sync completed successfully. ${itemsCreated} items created.`);
+    } catch (error: any) {
+      console.error('Error in handleSaveAndSyncMenu:', error);
+      setSyncDebug('Unexpected error: ' + error.message);
+      Alert.alert('Error', error.message || 'An error occurred while syncing the menu. Please try again.');
+    } finally {
+      setIsSyncing(false);
+      console.log('=== SYNC MENU END ===');
+    }
+  };
+
+const handleUpdateFromCurrentSheet = async () => {
+    setSyncDebug('Sync button pressed');
+
+    if (!business?.id) {
+      setSyncDebug('Error: Business ID not found');
+      Alert.alert('Error', 'Business ID not found. Please try logging in again.');
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      console.log('=== SYNC MENU START ===');
+      console.log('Business ID:', business.id);
       setSyncDebug('Starting sync for business ID: ' + business.id);
 
       // 1. Save the Google Sheet URL to business.sheet_url in Supabase
@@ -429,7 +517,7 @@ const handleNavigateToTerms = () => {
             </View>
             <Pressable
               style={[styles.connectButton, isSyncing && styles.connectButtonDisabled]}
-              onPress={handleSaveAndSyncMenu}
+              onPress={handleUpdateSheetURL}
               disabled={isSyncing}
             >
               {isSyncing ? (
