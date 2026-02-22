@@ -31,14 +31,14 @@ type RawMenuItem = {
   category?: string | null;
 
   menu_item_allergens?:
-    | Array<{ allergens?: { id: number; name: string } | null }>
-    | { allergens?: { id: number; name: string } | null }
-    | null;
+  | Array<{ allergens?: { id: number; name: string } | null }>
+  | { allergens?: { id: number; name: string } | null }
+  | null;
 
   menu_item_preferences?:
-    | Array<{ preferences?: { id: number; name: string } | null }>
-    | { preferences?: { id: number; name: string } | null }
-    | null;
+  | Array<{ preferences?: { id: number; name: string } | null }>
+  | { preferences?: { id: number; name: string } | null }
+  | null;
 
   preferences?: string[] | string | null;
   allergens?: string[] | string | null;
@@ -92,14 +92,6 @@ function flattenItem(raw: RawMenuItem): MenuItem {
 export default function HomeScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
 
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const [loading, setLoading] = useState(true);
-  const [businessName, setBusinessName] = useState<string | null>(null);
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
   // Accept BOTH filter id + name (defensive against "Vegan" vs "vegan")
   const prefIdSet = useMemo(() => {
     const ids = PREFERENCES_FILTERS.map((f) => token(f.id));
@@ -112,6 +104,15 @@ export default function HomeScreen() {
     const names = DIETARY_NEEDS_FILTERS.map((f) => token(f.name));
     return new Set([...ids, ...names]);
   }, []);
+
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(Array.from(allergenIdSet));
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [loading, setLoading] = useState(true);
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
 
   const toggleFilter = (filterId: string) => {
     const id = token(filterId);
