@@ -24,6 +24,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Share } from 'react-native';
 import { supabase } from '@/app/integrations/supabase/client';
 import { useBusiness } from '@/hooks/useBusiness';
+import Button from '@/components/button';
 
 export default function ProfileScreen() {
   const { business, loading: businessLoading, loginWithCode, logout } = useBusiness();
@@ -69,51 +70,124 @@ export default function ProfileScreen() {
 
   const qrRef = useRef<any>(null);
 
+  const downloadSVG = async (element: HTMLElement) => {
+    console.log(element)
+    const data = new XMLSerializer().serializeToString(element)
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
+        <foreignObject width="100%" height="100%">
+          ${data}
+        </foreignObject>
+      </svg>
+    `
+
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+  
+    const loadImage = async (url : string) => {
+      const img = document.createElement('img')
+      img.src = url
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+          img.onload = () => resolve(img)
+          img.onerror = reject
+          img.src = url
+      })
+    };
+
+    const img = await loadImage(url)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = element.offsetWidth
+    canvas.height = element.offsetHeight
+    const draw = canvas.getContext('2d')
+    
+    if( draw=== null){
+      console.error("Error generating SVG URL")
+      return null
+    }
+    draw.drawImage(img, 0, 0)
+  
+    URL.revokeObjectURL(url)
+  
+    const link = document.createElement('a')
+    link.download = 'element.png'
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+}
+
   const handleSaveToPhotos = async () => {
+    console.log("Saving QR Code!")
+
     if (!businessUrl) {
+      console.error("No QR code available")
       Alert.alert('No QR available', 'Please set a business code to generate the QR code.');
       return;
     }
-
-    // Request media library permissions
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Permission to access photos is required to save the QR image.');
+    const canvas: HTMLElement|null = document.getElementById("Buisiness_QRCode_Sticker");
+    console.log(canvas)
+    if(canvas === null){
+      console.error("Unable to locate generated QR Code sticker")
       return;
     }
-
-    try {
-      if (!qrRef.current?.toDataURL) {
-        Alert.alert('Unsupported', 'Unable to generate QR image from this device.');
-        return;
-      }
-
-      // Generate base64 PNG data from the QR component
-      qrRef.current.toDataURL(async (base64Data: string) => {
-        try {
-          const filename = `qr-${businessCode || 'menu'}.png`;
-          const fileUri = (FileSystem as any).cacheDirectory + filename;
-
-          // Write base64 to a temporary file
-          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-            encoding: (FileSystem as any).EncodingType.Base64,
-          });
-
-          // Save to photo library
-          const asset = await MediaLibrary.createAssetAsync(fileUri);
-          await MediaLibrary.createAlbumAsync('Eaze', asset, false).catch(() => null);
-
-          Alert.alert('Saved', 'QR code saved to your Photos.');
-        } catch (err: any) {
-          console.error('Save QR error:', err);
-          Alert.alert('Error', 'Failed to save QR to photos.');
-        }
-      });
-    } catch (err: any) {
-      console.error('SaveToPhotos error:', err);
-      Alert.alert('Error', 'Failed to generate QR image.');
-    }
+    downloadSVG(canvas)
+    //const pngUrl = canvas
+    //  .toDataURL("image/png")
+    //  .replace("image/png", "image/octet-stream");
+    //let downloadLink = document.createElement("a");
+    //downloadLink.href = pngUrl
+    //downloadLink.download = `your_name.svg`;
+    //document.body.appendChild(downloadLink);
+    //downloadLink.click();
+    //document.body.removeChild(downloadLink);
   };
+
+  //   // Request media library permissions
+  //   const { status } = await MediaLibrary.requestPermissionsAsync();
+  //   if (status !== 'granted') {
+  //     console.error("Permissions Required")
+  //     Alert.alert('Permission required', 'Permission to access photos is required to save the QR image.');
+  //     return;
+  //   }
+
+  //   console.log("No Alerts")
+
+  //   try {
+  //     if (!qrRef.current?.toDataURL) {
+  //       Alert.alert('Unsupported', 'Unable to generate QR image from this device.');
+  //       return;
+  //     }
+
+  //     // Generate base64 PNG data from the QR component
+  //     qrRef.current.toDataURL(async (base64Data: string) => {
+  //       console.log("GOT HERE")
+  //       try {
+  //         const filename = `qr-${businessCode || 'menu'}.png`;
+  //         console.log("filename " + filename)
+  //         const fileUri = (FileSystem as any).cacheDirectory + filename;
+  //         console.log("fileUri " + fileUri)
+
+  //         // Write base64 to a temporary file
+  //         await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+  //           encoding: (FileSystem as any).EncodingType.Base64,
+  //         });
+
+  //         // Save to photo library
+  //         const asset = await MediaLibrary.createAssetAsync(fileUri);
+  //         await MediaLibrary.createAlbumAsync('Eaze', asset, false).catch(() => null);
+
+  //         Alert.alert('Saved', 'QR code saved to your Photos.');
+  //         console.log("QR code saved successfully")
+  //       } catch (err: any) {
+  //         console.error('Save QR error:', err);
+  //         Alert.alert('Error', 'Failed to save QR to photos.');
+  //       }
+  //     });
+  //   } catch (err: any) {
+  //     console.error('SaveToPhotos error:', err);
+  //     Alert.alert('Error', 'Failed to generate QR image.');
+  //   }
+  // };
 
   const handleShareLink = async () => {
     if (!businessUrl) {
@@ -600,7 +674,9 @@ const handleNavigateToTerms = () => {
               Share this QR code with your customers. They can scan it to view your allergen-friendly menu.
             </Text>
             <View style={styles.qrCodeContainer}>
-              <View style={styles.qrCodeBrandWrapper}>
+              <View style={styles.qrCodeBrandWrapper}
+                id = "Buisiness_QRCode_Sticker"
+              >
                 <View style={styles.qrCodeLogoContainer}>
                   <Image
                     source={{ uri: 'https://i.postimg.cc/W1WRMMdY/eaze-06.jpg' }}
@@ -608,7 +684,9 @@ const handleNavigateToTerms = () => {
                     resizeMode="contain"
                   />
                 </View>
-                <View style={styles.qrCodeWrapper}>
+                <View style={styles.qrCodeWrapper}
+                    id = "Buisiness_QRcode"
+                >
                   <QRCode
                     ref={qrRef}
                     value={businessUrl}
@@ -616,6 +694,7 @@ const handleNavigateToTerms = () => {
                     color={colors.primary}
                     backgroundColor="#FFFFFF"
                     quietZone={10}
+
                   />
                 </View>
                 <View style={styles.qrCodeBrandFooter}>
