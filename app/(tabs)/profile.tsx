@@ -203,6 +203,12 @@ export default function ProfileScreen() {
     }
   };
 
+  function onSignIn(user){
+    let profile = user.getBasicProfile()
+    let idToken = user.getAuthResponce().id_token;
+
+  }
+
   const handleLogin = async () => {
     setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
@@ -471,56 +477,15 @@ const handleNavigateToTerms = () => {
           />
         )}
         <SafeAreaView style={styles.container} edges={['top']}>
+          <script src="https://apis.google.com/js/platform.js" async defer></script>
+          <meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com"></meta>
           <View style={styles.loginContainer}>
             <View style={styles.loginCard}>
               <IconSymbol name="lock.fill" color={colors.primary} size={64} />
               <Text style={styles.loginTitle}>Business Access</Text>
-              <Text style={styles.loginSubtitle}>
-                Enter your unique business code to access the dashboard
-              </Text>
+              <div class="g-signin2" data-onsuccess="onSignIn"></div>
 
-              <View style={styles.loginInputContainer}>
-                <TextInput
-                  style={styles.loginInput}
-                  value={loginCode}
-                  onChangeText={setLoginCode}
-                  placeholder="Enter business code"
-                  placeholderTextColor={colors.textSecondary}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  secureTextEntry={false}
-                  editable={!isLoggingIn}
-                />
-              </View>
-
-              <Pressable
-                style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
-                onPress={handleLogin}
-                disabled={isLoggingIn}
-              >
-                {isLoggingIn ? (
-                  <>
-                    <ActivityIndicator color={colors.card} size="small" />
-                    <Text style={styles.loginButtonText}>Logging in...</Text>
-                  </>
-                ) : (
-                  <Text style={styles.loginButtonText}>Access Dashboard</Text>
-                )}
-              </Pressable>
-
-              {lastDebug ? (
-                <View style={styles.debugContainer}>
-                  <Text style={styles.debugLabel}>Debug Status:</Text>
-                  <Text style={styles.debugText}>{lastDebug}</Text>
-                </View>
-              ) : null}
-
-              <View style={styles.loginHintCard}>
-                <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
-                <Text style={styles.loginHintText}>
-                  Enter your business code (e.g. PIZZA-001)
-                </Text>
-              </View>
+              
             </View>
           </View>
         </SafeAreaView>
