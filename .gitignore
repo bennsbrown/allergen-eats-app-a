@@ -40,3 +40,5 @@ package-lock.json
 
 # A file for keeping notes while working on the project, but not part of the project
 Notes.txt
+
+secrets/*
