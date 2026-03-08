@@ -14,6 +14,7 @@ export interface Business {
 const BUSINESS_STORAGE_KEY = '@business_data';
 
 export function useBusiness() {
+  const [userBusinesses , setUserBusinesses] = useState<Business[]|null>(null)
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +28,7 @@ export function useBusiness() {
       if (businessJson) {
         const businessData = JSON.parse(businessJson);
         console.log('Loaded business from storage:', businessData);
-        setBusiness(businessData);
+        setBusiness(businessData[0]);
       }
     } catch (error) {
       console.error('Error loading business:', error);
@@ -36,19 +37,24 @@ export function useBusiness() {
     }
   };
 
-  const loginWithCode = async (businessData: Business) => {
+  const loginWithUserId = async (businessData: Business[]) => {
+    if(!businessData){
+      throw new Error("Cannot login with empty user business data")
+    }
     try {
       // Store business data in AsyncStorage
       await AsyncStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(businessData));
       
       console.log('Business data stored:', businessData);
-      setBusiness(businessData);
+      setUserBusinesses(businessData)
+      setBusiness(businessData[0]);
       return businessData;
     } catch (error) {
       console.error('Error storing business data:', error);
       throw error;
     }
   };
+
 
   const logout = async () => {
     try {
@@ -102,9 +108,10 @@ export function useBusiness() {
   };
 
   return {
+    userBusinesses,
     business,
     loading,
-    loginWithCode,
+    loginWithUserId: loginWithUserId,
     logout,
     updateGoogleSheetUrl,
     updateBusinessName,

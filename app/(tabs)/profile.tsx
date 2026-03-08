@@ -16,6 +16,7 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
+import { Select } from 'react-select'
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -26,8 +27,14 @@ import { supabase } from '@/app/integrations/supabase/client';
 import { useBusiness } from '@/hooks/useBusiness';
 import Button from '@/components/button';
 
+declare global {
+  interface Window {
+    handleLogin?: any;
+  }
+}
+
 export default function ProfileScreen() {
-  const { business, loading: businessLoading, loginWithCode, logout } = useBusiness();
+  const { userBusinesses, business, loading: businessLoading, loginWithUserId: loginWithUserId, logout } = useBusiness();
   const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -45,8 +52,8 @@ export default function ProfileScreen() {
 
   const qrImageUrl = businessUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-        businessUrl
-      )}`
+      businessUrl
+    )}`
     : '';
 
   const handleCopyLink = async () => {
@@ -84,14 +91,14 @@ export default function ProfileScreen() {
 
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-  
-    const loadImage = async (url : string) => {
+
+    const loadImage = async (url: string) => {
       const img = document.createElement('img')
       img.src = url
       return new Promise<HTMLImageElement>((resolve, reject) => {
-          img.onload = () => resolve(img)
-          img.onerror = reject
-          img.src = url
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = url
       })
     };
 
@@ -101,20 +108,20 @@ export default function ProfileScreen() {
     canvas.width = element.offsetWidth
     canvas.height = element.offsetHeight
     const draw = canvas.getContext('2d')
-    
-    if( draw=== null){
+
+    if (draw === null) {
       console.error("Error generating SVG URL")
       return null
     }
     draw.drawImage(img, 0, 0)
-  
+
     URL.revokeObjectURL(url)
-  
+
     const link = document.createElement('a')
     link.download = 'element.png'
     link.href = canvas.toDataURL('image/png')
     link.click()
-}
+  }
 
   const handleSaveToPhotos = async () => {
     console.log("Saving QR Code!")
@@ -124,9 +131,9 @@ export default function ProfileScreen() {
       Alert.alert('No QR available', 'Please set a business code to generate the QR code.');
       return;
     }
-    const canvas: HTMLElement|null = document.getElementById("Buisiness_QRCode_Sticker");
+    const canvas: HTMLElement | null = document.getElementById("Buisiness_QRCode_Sticker");
     console.log(canvas)
-    if(canvas === null){
+    if (canvas === null) {
       console.error("Unable to locate generated QR Code sticker")
       return;
     }
@@ -203,35 +210,24 @@ export default function ProfileScreen() {
     }
   };
 
-  function onSignIn(user){
-    let profile = user.getBasicProfile()
-    let idToken = user.getAuthResponce().id_token;
 
-  }
 
-  const handleLogin = async () => {
+  const handleLogin = async (response: any) => {
     setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
 
-    if (!loginCode.trim()) {
-      setLastDebug('Error: No code entered');
-      Alert.alert('Error', 'Please enter a business code');
-      return;
-    }
-
     setIsLoggingIn(true);
 
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: response.credential,
+    })
     try {
-      const normalizedCode = loginCode.trim();
-      setLastDebug('Code entered: ' + normalizedCode);
-      Alert.alert('DEBUG', 'Code entered: ' + normalizedCode);
 
       // Query the business table for the entered code
       const { data, error } = await (supabase as any)
         .from('business')
-        .select('*')
-        .eq('unique_identifier', normalizedCode)
-        .maybeSingle();
+        .select('*');
 
       if (error) {
         setLastDebug('Supabase error: ' + error.message);
@@ -241,7 +237,7 @@ export default function ProfileScreen() {
       }
 
       if (!data) {
-        setLastDebug('No business found for code: ' + normalizedCode);
+        setLastDebug('No business found for code current user ');
         Alert.alert(
           'Error',
           "We couldn't find a business with that code. Please check your code and try again."
@@ -249,11 +245,12 @@ export default function ProfileScreen() {
         return;
       }
 
-      setLastDebug('Business found: ' + data.name);
-      Alert.alert('DEBUG', 'Business found: id=' + data.id + ', name=' + data.name);
+      setLastDebug('Businesses found: ' + data.forEach((element: any) => {
+        element.name
+      }));
 
       // Store business data using the hook
-      await loginWithCode(data);
+      await loginWithUserId(data);
 
       setLastDebug('Navigating to dashboard/profile');
       Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
@@ -266,6 +263,8 @@ export default function ProfileScreen() {
       setIsLoggingIn(false);
     }
   };
+
+  window.handleLogin = handleLogin
 
   const handleLogout = async () => {
     await logout();
@@ -318,7 +317,7 @@ export default function ProfileScreen() {
 
       // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
       const { data, error } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()}, //TODO FIX HERE
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim() }, //TODO FIX HERE
       });
 
       console.log('=== EDGE FUNCTION RESPONSE ===');
@@ -372,7 +371,7 @@ export default function ProfileScreen() {
     }
   };
 
-const handleUpdateFromCurrentSheet = async () => {
+  const handleUpdateFromCurrentSheet = async () => {
     setSyncDebug('Sync button pressed');
 
     if (!business?.id) {
@@ -406,7 +405,7 @@ const handleUpdateFromCurrentSheet = async () => {
 
       // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
       const { data, error } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()}, //TODO FIX HERE
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim() }, //TODO FIX HERE
       });
 
       console.log('=== EDGE FUNCTION RESPONSE ===');
@@ -460,13 +459,15 @@ const handleUpdateFromCurrentSheet = async () => {
     }
   };
 
-const handleNavigateToTerms = () => {
+  const handleNavigateToTerms = () => {
     console.log('Navigating to Terms & Conditions');
     router.push('/terms-acceptance');
   };
 
   // Login Screen
-  if (!business) {
+  console.log("userBusinesses = "  + userBusinesses)
+  console.log("userBusinesses = "  + userBusinesses?.forEach((element : any) => {element?.name}))
+  if (!userBusinesses) {
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -477,15 +478,30 @@ const handleNavigateToTerms = () => {
           />
         )}
         <SafeAreaView style={styles.container} edges={['top']}>
-          <script src="https://apis.google.com/js/platform.js" async defer></script>
-          <meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com"></meta>
           <View style={styles.loginContainer}>
             <View style={styles.loginCard}>
               <IconSymbol name="lock.fill" color={colors.primary} size={64} />
               <Text style={styles.loginTitle}>Business Access</Text>
-              <div class="g-signin2" data-onsuccess="onSignIn"></div>
+              <div id="g_id_onload"
+                data-client_id="526105192407-qh5gjo9iqccbeddt4oqidasckh42vgva.apps.googleusercontent.com"
+                data-context="signin"
+                data-ux_mode="popup"
+                data-callback="handleLogin"
+                data-nonce=""
+                data-auto_prompt="false"
+                data-use_fedcm_for_prompt="true">
+              </div>
 
-              
+              <div className="g_id_signin"
+                data-type="standard"
+                data-shape="pill"
+                data-theme="filled_blue"
+                data-text="signin_with"
+                data-size="large"
+                data-logo_alignment="left">
+              </div>
+
+
             </View>
           </View>
         </SafeAreaView>
@@ -640,7 +656,7 @@ const handleNavigateToTerms = () => {
             </Text>
             <View style={styles.qrCodeContainer}>
               <View style={styles.qrCodeBrandWrapper}
-                id = "Buisiness_QRCode_Sticker"
+                id="Buisiness_QRCode_Sticker"
               >
                 <View style={styles.qrCodeLogoContainer}>
                   <Image
@@ -650,7 +666,7 @@ const handleNavigateToTerms = () => {
                   />
                 </View>
                 <View style={styles.qrCodeWrapper}
-                    id = "Buisiness_QRcode"
+                  id="Buisiness_QRcode"
                 >
                   <QRCode
                     ref={qrRef}
