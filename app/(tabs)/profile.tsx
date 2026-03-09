@@ -16,7 +16,7 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
-import { Select } from 'react-select'
+import  Select from 'react-select'
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -24,7 +24,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { Share } from 'react-native';
 import { supabase } from '@/app/integrations/supabase/client';
-import { useBusiness } from '@/hooks/useBusiness';
+import { Business, useBusiness } from '@/hooks/useBusiness';
 import Button from '@/components/button';
 
 declare global {
@@ -34,7 +34,7 @@ declare global {
 }
 
 export default function ProfileScreen() {
-  const { userBusinesses, business, loading: businessLoading, loginWithUserId: loginWithUserId, logout } = useBusiness();
+  const { userBusinesses, business, loading, setBusiness, loginWithUserId, logout } = useBusiness();
   const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -464,9 +464,14 @@ export default function ProfileScreen() {
     router.push('/terms-acceptance');
   };
 
+  const handleSelectBusiness = (business : any) => {
+    console.log("business changing to " + JSON.stringify(business))
+    setBusiness(business.value)
+    console.log(businessCode)
+  }
+
   // Login Screen
-  console.log("userBusinesses = "  + userBusinesses)
-  console.log("userBusinesses = "  + userBusinesses?.forEach((element : any) => {element?.name}))
+  console.log("userBusinesses = "  + JSON.stringify(userBusinesses))
   if (!userBusinesses) {
     return (
       <>
@@ -537,10 +542,22 @@ export default function ProfileScreen() {
             />
           </View>
 
+          {/* Select from the user's buisinesses */}
+          <View>
+            <Select
+              defaultValue={business}
+              onChange = {handleSelectBusiness}
+              options={userBusinesses.map((element) => ({
+                  value : element,
+                  label : element.name
+                })
+              )} 
+            />
+          </View>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Business Dashboard</Text>
             <Text style={styles.headerSubtitle}>
-              {business.name || 'Manage your allergen menu configuration'}
+              {business?.name || 'Manage your allergen menu configuration'}
             </Text>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
@@ -722,7 +739,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.businessCodeDisplay}>
               <Text style={styles.businessCodeText}>
-                {business.unique_identifier || 'N/A'}
+                {business?.unique_identifier || 'N/A'}
               </Text>
             </View>
             <Text style={styles.cardDescription}>

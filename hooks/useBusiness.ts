@@ -28,6 +28,7 @@ export function useBusiness() {
       if (businessJson) {
         const businessData = JSON.parse(businessJson);
         console.log('Loaded business from storage:', businessData);
+        setUserBusinesses(businessData)
         setBusiness(businessData[0]);
       }
     } catch (error) {
@@ -39,6 +40,7 @@ export function useBusiness() {
 
   const loginWithUserId = async (businessData: Business[]) => {
     if(!businessData){
+      console.log("HERE")
       throw new Error("Cannot login with empty user business data")
     }
     try {
@@ -111,7 +113,8 @@ export function useBusiness() {
     userBusinesses,
     business,
     loading,
-    loginWithUserId: loginWithUserId,
+    setBusiness,
+    loginWithUserId,
     logout,
     updateGoogleSheetUrl,
     updateBusinessName,
