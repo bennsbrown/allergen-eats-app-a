@@ -225,9 +225,24 @@ export default function ProfileScreen() {
     try {
 
       // Query the business table for the entered code
+      const {data: {user:user}, error: userError} = await supabase.auth.getUser()
+      if (userError){
+        setLastDebug('Supabase error: ' + userError.message);
+        console.error('Supabase user retrival error:', userError);
+        return;
+      }
+      if (user === null){
+        setLastDebug("failed to retrieve supabase user")
+        console.log("failed to retrieve supabase user")
+        return;
+      }
+      console.log("user = " + user.id)
+
       const { data, error } = await (supabase as any)
         .from('business')
-        .select('*');
+        .select('*')
+        .eq('owner',user.id);
+        
 
       if (error) {
         setLastDebug('Supabase error: ' + error.message);
@@ -267,6 +282,7 @@ export default function ProfileScreen() {
   window.handleLogin = handleLogin
 
   const handleLogout = async () => {
+    await supabase.auth.signOut()
     await logout();
     setLoginCode('');
     setGoogleSheetUrl('');
@@ -465,9 +481,8 @@ export default function ProfileScreen() {
   };
 
   const handleSelectBusiness = (business : any) => {
-    console.log("business changing to " + JSON.stringify(business))
+    console.log("business changing to " + business.value.name)
     setBusiness(business.value)
-    console.log(businessCode)
   }
 
   // Login Screen
