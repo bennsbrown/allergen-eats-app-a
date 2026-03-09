@@ -62,7 +62,8 @@ export function useBusiness() {
     try {
       await AsyncStorage.removeItem(BUSINESS_STORAGE_KEY);
       setBusiness(null);
-      console.log('Business logged out');
+      setUserBusinesses(null);
+      console.log('User logged out');
     } catch (error) {
       console.error('Error logging out:', error);
       throw error;
