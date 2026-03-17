@@ -576,9 +576,17 @@ export default function ProfileScreen() {
             menuPosition="absolute"
             menuPortalTarget={document.body}
               styles={{
+                control: (provided: any) => ({
+                  ...provided,
+                  fontFamily: "sans-serif",
+                }),
+                option: (provided: any) => ({
+                  ...provided,
+                  fontFamily: "sans-serif",
+                }),
                 menu: (provided :any) => ({
                 ...provided,
-                  zIndex: 999999
+                  zIndex: 999999,
                 })
               }}
               defaultValue={business}
