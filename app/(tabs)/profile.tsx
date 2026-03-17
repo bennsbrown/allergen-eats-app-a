@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
 import  Select from 'react-select'
 import QRCode from 'react-native-qrcode-svg';
@@ -487,7 +487,7 @@ export default function ProfileScreen() {
 
   // Login Screen
   console.log("userBusinesses = "  + JSON.stringify(userBusinesses))
-  if (!userBusinesses) {
+  if (userBusinesses === null) {
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -530,6 +530,11 @@ export default function ProfileScreen() {
   }
 
   // Business Dashboard (after login)
+  const businessOptions = userBusinesses.map((element) => ({
+                value : element,
+                label : element.name
+              })
+            )
   return (
     <>
       {Platform.OS === 'ios' && (
@@ -557,27 +562,31 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Select from the user's buisinesses */}
-          <View>
-            <Select
-              defaultValue={business}
-              onChange = {handleSelectBusiness}
-              options={userBusinesses.map((element) => ({
-                  value : element,
-                  label : element.name
-                })
-              )} 
-            />
-          </View>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Business Dashboard</Text>
-            <Text style={styles.headerSubtitle}>
-              {business?.name || 'Manage your allergen menu configuration'}
-            </Text>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Pressable>
+          </View>
+
+          {/* Select from the user's buisinesses */}
+          <View style={{ marginBottom: 40}}>
+            <Select
+            menuPosition="absolute"
+            menuPortalTarget={document.body}
+              styles={{
+                menu: (provided :any) => ({
+                ...provided,
+                  zIndex: 999999
+                })
+              }}
+              defaultValue={business}
+              onChange = {handleSelectBusiness}
+              options={businessOptions}
+              isClearable ={false}
+              isSearchable ={false}
+            />
           </View>
 
           {/* Google Sheets Integration Card - Moved to top for better visibility */}
@@ -1104,6 +1113,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
     elevation: 3,
+    zIndex: 0,
   },
   cardHeader: {
     flexDirection: 'row',
