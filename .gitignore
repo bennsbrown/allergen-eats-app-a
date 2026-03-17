@@ -38,7 +38,10 @@ netlify.toml
 pnpm-lock.yaml
 package-lock.json
 
+*.swp
+
 # A file for keeping notes while working on the project, but not part of the project
 Notes.txt
 
+# A place to store secrets locally without adding them to the repo
 secrets/*
