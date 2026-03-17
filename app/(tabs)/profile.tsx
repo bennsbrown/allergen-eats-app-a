@@ -573,8 +573,8 @@ export default function ProfileScreen() {
           {/* Select from the user's buisinesses */}
           <View style={{ marginBottom: 40}}>
             <Select
-            menuPosition="absolute"
-            menuPortalTarget={document.body}
+              menuPosition="absolute"
+              menuPortalTarget={document.body}
               styles={{
                 control: (provided: any) => ({
                   ...provided,
