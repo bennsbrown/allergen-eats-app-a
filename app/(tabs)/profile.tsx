@@ -14,8 +14,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
+import  Select from 'react-select'
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -23,13 +24,19 @@ import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { Share } from 'react-native';
 import { supabase } from '@/app/integrations/supabase/client';
-import { useBusiness } from '@/hooks/useBusiness';
+import { Business, useBusiness } from '@/hooks/useBusiness';
 import Button from '@/components/button';
 import html2canvas from 'html2canvas';
 
 
+declare global {
+  interface Window {
+    handleLogin?: any;
+  }
+}
+
 export default function ProfileScreen() {
-  const { business, loading: businessLoading, loginWithCode, logout } = useBusiness();
+  const { userBusinesses, business, loading, setBusiness, loginWithUserId, logout } = useBusiness();
   const [loginCode, setLoginCode] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -47,8 +54,8 @@ export default function ProfileScreen() {
 
   const qrImageUrl = businessUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-        businessUrl
-      )}`
+      businessUrl
+    )}`
     : '';
 
   const handleCopyLink = async () => {
@@ -72,6 +79,52 @@ export default function ProfileScreen() {
 
   const qrRef = useRef<any>(null);
 
+  const downloadSVG = async (element: HTMLElement) => {
+    console.log(element)
+    const data = new XMLSerializer().serializeToString(element)
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
+        <foreignObject width="100%" height="100%">
+          ${data}
+        </foreignObject>
+      </svg>
+    `
+
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+
+    const loadImage = async (url: string) => {
+      const img = document.createElement('img')
+      img.src = url
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = url
+      })
+    };
+
+    const img = await loadImage(url)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = element.offsetWidth
+    canvas.height = element.offsetHeight
+    const draw = canvas.getContext('2d')
+
+    if (draw === null) {
+      console.error("Error generating SVG URL")
+      return null
+    }
+    draw.drawImage(img, 0, 0)
+
+    URL.revokeObjectURL(url)
+
+    const link = document.createElement('a')
+    link.download = 'element.png'
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
+
   const handleSaveToPhotos = async () => {
     console.log("Saving QR Code!")
 
@@ -80,9 +133,9 @@ export default function ProfileScreen() {
       Alert.alert('No QR available', 'Please set a business code to generate the QR code.');
       return;
     }
-    const element: HTMLElement|null = document.getElementById("buisinessQRCodeSticker");
-    console.log(element)
-    if(element === null){
+    const canvas: HTMLElement | null = document.getElementById("Buisiness_QRCode_Sticker");
+    console.log(canvas)
+    if (canvas === null) {
       console.error("Unable to locate generated QR Code sticker")
       return;
     }
@@ -109,29 +162,39 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogin = async () => {
+
+
+  const handleLogin = async (response: any) => {
     setLastDebug('Login button pressed');
     Alert.alert('DEBUG', 'Login button pressed');
 
-    if (!loginCode.trim()) {
-      setLastDebug('Error: No code entered');
-      Alert.alert('Error', 'Please enter a business code');
-      return;
-    }
-
     setIsLoggingIn(true);
 
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: response.credential,
+    })
     try {
-      const normalizedCode = loginCode.trim();
-      setLastDebug('Code entered: ' + normalizedCode);
-      Alert.alert('DEBUG', 'Code entered: ' + normalizedCode);
 
       // Query the business table for the entered code
+      const {data: {user:user}, error: userError} = await supabase.auth.getUser()
+      if (userError){
+        setLastDebug('Supabase error: ' + userError.message);
+        console.error('Supabase user retrival error:', userError);
+        return;
+      }
+      if (user === null){
+        setLastDebug("failed to retrieve supabase user")
+        console.log("failed to retrieve supabase user")
+        return;
+      }
+      console.log("user = " + user.id)
+
       const { data, error } = await (supabase as any)
         .from('business')
         .select('*')
-        .eq('unique_identifier', normalizedCode)
-        .maybeSingle();
+        .eq('owner',user.id);
+        
 
       if (error) {
         setLastDebug('Supabase error: ' + error.message);
@@ -141,7 +204,7 @@ export default function ProfileScreen() {
       }
 
       if (!data) {
-        setLastDebug('No business found for code: ' + normalizedCode);
+        setLastDebug('No business found for code current user ');
         Alert.alert(
           'Error',
           "We couldn't find a business with that code. Please check your code and try again."
@@ -149,11 +212,12 @@ export default function ProfileScreen() {
         return;
       }
 
-      setLastDebug('Business found: ' + data.name);
-      Alert.alert('DEBUG', 'Business found: id=' + data.id + ', name=' + data.name);
+      setLastDebug('Businesses found: ' + data.forEach((element: any) => {
+        element.name
+      }));
 
       // Store business data using the hook
-      await loginWithCode(data);
+      await loginWithUserId(data);
 
       setLastDebug('Navigating to dashboard/profile');
       Alert.alert('DEBUG', 'Navigating to dashboard/profile now');
@@ -167,7 +231,10 @@ export default function ProfileScreen() {
     }
   };
 
+  window.handleLogin = handleLogin
+
   const handleLogout = async () => {
+    await supabase.auth.signOut()
     await logout();
     setLoginCode('');
     setGoogleSheetUrl('');
@@ -218,7 +285,7 @@ export default function ProfileScreen() {
 
       // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
       const { data, error } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()}, //TODO FIX HERE
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim() }, //TODO FIX HERE
       });
 
       console.log('=== EDGE FUNCTION RESPONSE ===');
@@ -272,7 +339,7 @@ export default function ProfileScreen() {
     }
   };
 
-const handleUpdateFromCurrentSheet = async () => {
+  const handleUpdateFromCurrentSheet = async () => {
     setSyncDebug('Sync button pressed');
 
     if (!business?.id) {
@@ -306,7 +373,7 @@ const handleUpdateFromCurrentSheet = async () => {
 
       // 2. Invoke the Supabase Edge Function called sync-menu (with hyphen)
       const { data, error } = await supabase.functions.invoke('sync-menu', {
-        body: { business_id: business.id, sheet_url: googleSheetUrl.trim()}, //TODO FIX HERE
+        body: { business_id: business.id, sheet_url: googleSheetUrl.trim() }, //TODO FIX HERE
       });
 
       console.log('=== EDGE FUNCTION RESPONSE ===');
@@ -360,13 +427,19 @@ const handleUpdateFromCurrentSheet = async () => {
     }
   };
 
-const handleNavigateToTerms = () => {
+  const handleNavigateToTerms = () => {
     console.log('Navigating to Terms & Conditions');
     router.push('/terms-acceptance');
   };
 
+  const handleSelectBusiness = (business : any) => {
+    console.log("business changing to " + business.value.name)
+    setBusiness(business.value)
+  }
+
   // Login Screen
-  if (!business) {
+  console.log("userBusinesses = "  + JSON.stringify(userBusinesses))
+  if (userBusinesses === null) {
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -381,52 +454,26 @@ const handleNavigateToTerms = () => {
             <View style={styles.loginCard}>
               <IconSymbol name="lock.fill" color={colors.primary} size={64} />
               <Text style={styles.loginTitle}>Business Access</Text>
-              <Text style={styles.loginSubtitle}>
-                Enter your unique business code to access the dashboard
-              </Text>
+              <div id="g_id_onload"
+                data-client_id="526105192407-qh5gjo9iqccbeddt4oqidasckh42vgva.apps.googleusercontent.com"
+                data-context="signin"
+                data-ux_mode="popup"
+                data-callback="handleLogin"
+                data-nonce=""
+                data-auto_prompt="false"
+                data-use_fedcm_for_prompt="true">
+              </div>
 
-              <View style={styles.loginInputContainer}>
-                <TextInput
-                  style={styles.loginInput}
-                  value={loginCode}
-                  onChangeText={setLoginCode}
-                  placeholder="Enter business code"
-                  placeholderTextColor={colors.textSecondary}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  secureTextEntry={false}
-                  editable={!isLoggingIn}
-                />
-              </View>
+              <div className="g_id_signin"
+                data-type="standard"
+                data-shape="pill"
+                data-theme="filled_blue"
+                data-text="signin_with"
+                data-size="large"
+                data-logo_alignment="left">
+              </div>
 
-              <Pressable
-                style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
-                onPress={handleLogin}
-                disabled={isLoggingIn}
-              >
-                {isLoggingIn ? (
-                  <>
-                    <ActivityIndicator color={colors.card} size="small" />
-                    <Text style={styles.loginButtonText}>Logging in...</Text>
-                  </>
-                ) : (
-                  <Text style={styles.loginButtonText}>Access Dashboard</Text>
-                )}
-              </Pressable>
 
-              {lastDebug ? (
-                <View style={styles.debugContainer}>
-                  <Text style={styles.debugLabel}>Debug Status:</Text>
-                  <Text style={styles.debugText}>{lastDebug}</Text>
-                </View>
-              ) : null}
-
-              <View style={styles.loginHintCard}>
-                <IconSymbol name="info.circle.fill" color={colors.secondary} size={20} />
-                <Text style={styles.loginHintText}>
-                  Enter your business code (e.g. PIZZA-001)
-                </Text>
-              </View>
             </View>
           </View>
         </SafeAreaView>
@@ -435,6 +482,11 @@ const handleNavigateToTerms = () => {
   }
 
   // Business Dashboard (after login)
+  const businessOptions = userBusinesses.map((element) => ({
+                value : element,
+                label : element.name
+              })
+            )
   return (
     <>
       {Platform.OS === 'ios' && (
@@ -464,13 +516,37 @@ const handleNavigateToTerms = () => {
 
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Business Dashboard</Text>
-            <Text style={styles.headerSubtitle}>
-              {business.name || 'Manage your allergen menu configuration'}
-            </Text>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
               <IconSymbol name="arrow.right.square.fill" color={colors.card} size={18} />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Pressable>
+          </View>
+
+          {/* Select from the user's buisinesses */}
+          <View style={{ marginBottom: 40}}>
+            <Select
+              menuPosition="absolute"
+              menuPortalTarget={document.body}
+              styles={{
+                control: (provided: any) => ({
+                  ...provided,
+                  fontFamily: "sans-serif",
+                }),
+                option: (provided: any) => ({
+                  ...provided,
+                  fontFamily: "sans-serif",
+                }),
+                menu: (provided :any) => ({
+                ...provided,
+                  zIndex: 999999,
+                })
+              }}
+              defaultValue={business}
+              onChange = {handleSelectBusiness}
+              options={businessOptions}
+              isClearable ={false}
+              isSearchable ={false}
+            />
           </View>
 
           {/* Google Sheets Integration Card - Moved to top for better visibility */}
@@ -581,7 +657,7 @@ const handleNavigateToTerms = () => {
             </Text>
             <View style={styles.qrCodeContainer}>
               <View style={styles.qrCodeBrandWrapper}
-                id = "buisinessQRCodeSticker"
+                id="Buisiness_QRCode_Sticker"
               >
                 <View style={styles.qrCodeLogoContainer}>
                   <Image
@@ -591,7 +667,7 @@ const handleNavigateToTerms = () => {
                   />
                 </View>
                 <View style={styles.qrCodeWrapper}
-                    id = "Buisiness_QRcode"
+                  id="Buisiness_QRcode"
                 >
                   <QRCode
                     ref={qrRef}
@@ -647,7 +723,7 @@ const handleNavigateToTerms = () => {
             </View>
             <View style={styles.businessCodeDisplay}>
               <Text style={styles.businessCodeText}>
-                {business.unique_identifier || 'N/A'}
+                {business?.unique_identifier || 'N/A'}
               </Text>
             </View>
             <Text style={styles.cardDescription}>
@@ -997,6 +1073,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     boxShadow: '0px 3px 10px rgba(56, 189, 248, 0.15)',
     elevation: 3,
+    zIndex: 0,
   },
   cardHeader: {
     flexDirection: 'row',

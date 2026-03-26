@@ -43,6 +43,14 @@ export const commonStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  selector: {
+    flex: 1,
+    backgroundColor: colors.background,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   content: {
     flex: 1,
     alignItems: 'center',
