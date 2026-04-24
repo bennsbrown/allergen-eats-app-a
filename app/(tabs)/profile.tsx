@@ -16,7 +16,7 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { Stack, router } from 'expo-router';
-import  Select from 'react-select'
+import Select from 'react-select'
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -140,12 +140,12 @@ export default function ProfileScreen() {
       return;
     }
 
-    html2canvas(element, {useCORS : true, scale : 2}).then(canvas => {
+    html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
       const link = document.createElement("a");
       link.download = `${businessCode}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    });    
+    });
   };
 
   const handleShareLink = async () => {
@@ -177,13 +177,13 @@ export default function ProfileScreen() {
     try {
 
       // Query the business table for the entered code
-      const {data: {user:user}, error: userError} = await supabase.auth.getUser()
-      if (userError){
+      const { data: { user: user }, error: userError } = await supabase.auth.getUser()
+      if (userError) {
         setLastDebug('Supabase error: ' + userError.message);
         console.error('Supabase user retrival error:', userError);
         return;
       }
-      if (user === null){
+      if (user === null) {
         setLastDebug("failed to retrieve supabase user")
         console.log("failed to retrieve supabase user")
         return;
@@ -193,8 +193,8 @@ export default function ProfileScreen() {
       const { data, error } = await (supabase as any)
         .from('business')
         .select('*')
-        .eq('owner',user.id);
-        
+        .eq('owner', user.id);
+
 
       if (error) {
         setLastDebug('Supabase error: ' + error.message);
@@ -432,13 +432,28 @@ export default function ProfileScreen() {
     router.push('/terms-acceptance');
   };
 
-  const handleSelectBusiness = (business : any) => {
+  const handleSelectBusiness = (business: any) => {
     console.log("business changing to " + business.value.name)
     setBusiness(business.value)
   }
-
+  const buttonRef = useRef(null);
+  useEffect(() => {
+    if (window.google && buttonRef.current) {
+      console.log('There is window.google')
+      window.google.accounts.id.initialize({
+        client_id: document.querySelector('meta[name=google-signin-client_id]')?.getAttribute("content"), callback: handleLogin
+      })
+      window.google.accounts.id.prompt();
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: 'filled_blue',
+        shape:'pill',
+        size: 'large'
+      });
+    }
+    else { console.log(window.google, buttonRef); }
+  }, [buttonRef.current])
   // Login Screen
-  console.log("Is business null?\tuserBusinesses = "  + JSON.stringify(userBusinesses))
+  console.log("Is business null?\tuserBusinesses = " + JSON.stringify(userBusinesses))
   if (userBusinesses === null) {
     console.log("rendering")
     return (
@@ -471,7 +486,8 @@ export default function ProfileScreen() {
                 data-theme="filled_blue"
                 data-text="signin_with"
                 data-size="large"
-                data-logo_alignment="left">
+                data-logo_alignment="left"
+                ref={buttonRef}>
               </div>
 
 
@@ -485,10 +501,10 @@ export default function ProfileScreen() {
   console.log("business not null: " + JSON.stringify(userBusinesses))
   // Business Dashboard (after login)
   const businessOptions = userBusinesses.map((element) => ({
-                value : element,
-                label : element.name
-              })
-            )
+    value: element,
+    label: element.name
+  })
+  )
   return (
     <>
       {Platform.OS === 'ios' && (
@@ -525,7 +541,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Select from the user's buisinesses */}
-          <View style={{ marginBottom: 40}}>
+          <View style={{ marginBottom: 40 }}>
             <Select
               menuPosition="absolute"
               menuPortalTarget={document.body}
@@ -538,16 +554,16 @@ export default function ProfileScreen() {
                   ...provided,
                   fontFamily: "sans-serif",
                 }),
-                menu: (provided :any) => ({
-                ...provided,
+                menu: (provided: any) => ({
+                  ...provided,
                   zIndex: 999999,
                 })
               }}
               defaultValue={business}
-              onChange = {handleSelectBusiness}
+              onChange={handleSelectBusiness}
               options={businessOptions}
-              isClearable ={false}
-              isSearchable ={false}
+              isClearable={false}
+              isSearchable={false}
             />
           </View>
 
