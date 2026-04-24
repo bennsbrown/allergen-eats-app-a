@@ -438,8 +438,9 @@ export default function ProfileScreen() {
   }
 
   // Login Screen
-  console.log("userBusinesses = "  + JSON.stringify(userBusinesses))
+  console.log("Is business null?\tuserBusinesses = "  + JSON.stringify(userBusinesses))
   if (userBusinesses === null) {
+    console.log("rendering")
     return (
       <>
         {Platform.OS === 'ios' && (
@@ -481,6 +482,7 @@ export default function ProfileScreen() {
     );
   }
 
+  console.log("business not null: " + JSON.stringify(userBusinesses))
   // Business Dashboard (after login)
   const businessOptions = userBusinesses.map((element) => ({
                 value : element,

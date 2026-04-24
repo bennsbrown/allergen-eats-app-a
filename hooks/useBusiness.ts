@@ -26,7 +26,10 @@ export function useBusiness() {
     try {
       const businessJson = await AsyncStorage.getItem(BUSINESS_STORAGE_KEY);
       if (businessJson) {
-        const businessData = JSON.parse(businessJson);
+        let businessData = JSON.parse(businessJson);
+        if( !Array.isArray(businessData) ){
+          businessData = [businessData]
+        }
         console.log('Loaded business from storage:', businessData);
         setUserBusinesses(businessData)
         setBusiness(businessData[0]);
